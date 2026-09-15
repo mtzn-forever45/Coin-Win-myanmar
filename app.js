@@ -104,56 +104,6 @@ async function loadAdminWithdrawals() { const adminCard = $("adminCard"); const 
     box.appendChild(div);
   }
 }
-async function editTask(id, oldTitle, oldReward) {
-  const title = prompt("Task title:", oldTitle);
-  if (title === null) return;
-
-  const reward = Number(prompt("Reward Coins:", oldReward));
-  if (!title.trim() || !reward || reward <= 0) {
-    alert("Task title နဲ့ Reward Coins မှန်မှန်ထည့်ပါ။");
-    return;
-  }
-
-  const { error } = await sb
-    .from("tasks")
-    .update({
-      title: title.trim(),
-      reward_coins: reward
-    })
-    .eq("id", id);
-
-  if (error) {
-    alert(error.message);
-    return;
-  }
-
-  alert("✅ Task updated!");
-  await Promise.all([
-    loadAdminTasks(),
-    loadTasks()
-  ]);
-}
-
-async function deleteTask(id) {
-  const ok = confirm("ဒီ task ကို ဖျက်မလား?");
-  if (!ok) return;
-
-  const { error } = await sb
-    .from("tasks")
-    .delete()
-    .eq("id", id);
-
-  if (error) {
-    alert(error.message);
-    return;
-  }
-
-  alert("🗑️ Task deleted!");
-  await Promise.all([
-    loadAdminTasks(),
-    loadTasks()
-  ]);
-}
 
 async function updateWithdrawalStatus(id, status) {
   const { error } = await sb.rpc("update_withdrawal_status", {
