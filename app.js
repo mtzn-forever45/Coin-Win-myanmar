@@ -172,10 +172,11 @@ async function loadAdminTasks() {
     reward.textContent = `Reward: ${task.reward_coins} Coins`;
 
     const editBtn = document.createElement("button");
-    editBtn.textContent = "✏️ Edit";
-    editBtn.onclick = () =>
-      editTask(task.id, task.title, task.reward_coins);
-
+editBtn.textContent = "✏️ Edit";
+editBtn.onclick = () => {
+  alert("Edit button works!");
+  editTask(task.id, task.title, task.reward_coins);
+};
     div.append(title, reward, editBtn);
     box.appendChild(div);
   }
