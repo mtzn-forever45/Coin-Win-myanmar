@@ -172,7 +172,39 @@ async function loadAdminTasks() {
     box.appendChild(div);
   }
 }
+async function editTask(id, oldTitle, oldReward) {
+  const title = prompt("Task title:", oldTitle);
+  if (title === null) return;
 
+  const rewardInput = prompt("Reward Coins:", oldReward);
+  if (rewardInput === null) return;
+
+  const reward = Number(rewardInput);
+
+  if (!title.trim() || !Number.isInteger(reward) || reward <= 0) {
+    alert("Task title နဲ့ Reward Coins မှန်မှန်ထည့်ပါ။");
+    return;
+  }
+
+  const { error } = await sb
+    .from("tasks")
+    .update({
+      title: title.trim(),
+      reward_coins: reward
+    })
+    .eq("id", id);
+
+  if (error) {
+    alert(error.message);
+    return;
+  }
+
+  alert("✅ Task updated!");
+  await Promise.all([
+    loadAdminTasks(),
+    loadTasks()
+  ]);
+}
 async function loadProfile() {
   const { data, error } = await sb.from("profiles")
     .select("coin_balance")
