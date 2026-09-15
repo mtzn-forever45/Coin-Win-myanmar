@@ -95,13 +95,21 @@ async function loadAdminWithdrawals() { const adminCard = $("adminCard"); const 
 
     box.appendChild(div);
   }
-  }
+}
+
+async function updateWithdrawalStatus(id, status) {
+  const { error } = await sb.rpc("update_withdrawal_status", {
+    p_withdrawal_id: id,
+    p_status: status
+  });
+
   if (error) {
     alert(error.message);
     return;
   }
 
   alert(`Withdrawal #${id} → ${status}`);
+
   await Promise.all([
     loadAdminWithdrawals(),
     loadProfile()
