@@ -161,60 +161,16 @@ async function loadAdminTasks() {
   }
 
   for (const task of data) {
-  const div = document.createElement("div");
-  div.className = "tx";
+    const div = document.createElement("div");
+    div.className = "tx";
 
-  const title = document.createElement("strong");
-  title.textContent = `#${task.id} · ${task.title}`;
+    div.innerHTML = `
+      <strong>#${task.id} · ${escapeHtml(task.title)}</strong>
+      <div class="muted">Reward: ${task.reward_coins} Coins</div>
+    `;
 
-  const reward = document.createElement("div");
-  reward.className = "muted";
-  reward.textContent = `Reward: ${task.reward_coins} Coins`;
-
-  const editBtn = document.createElement("button");
-  editBtn.textContent = "✏️ Edit";
-
-  editBtn.onclick = () => {
-    editBtn.textContent = "✅ CLICKED";
-  };
-
-  div.append(title, reward, editBtn);
-  box.appendChild(div);
-}
-
-async function editTask(id, oldTitle, oldReward) {
-  const title = prompt("Task title:", oldTitle);
-  if (title === null) return;
-
-  const rewardInput = prompt("Reward Coins:", oldReward);
-  if (rewardInput === null) return;
-
-  const reward = Number(rewardInput);
-
-  if (!title.trim() || !Number.isInteger(reward) || reward <= 0) {
-    alert("Task title နဲ့ Reward Coins မှန်မှန်ထည့်ပါ။");
-    return;
+    box.appendChild(div);
   }
-
-  const { error } = await sb
-    .from("tasks")
-    .update({
-      title: title.trim(),
-      reward_coins: reward
-    })
-    .eq("id", id);
-
-  if (error) {
-    alert(error.message);
-    return;
-  }
-
-  alert("✅ Task updated!");
-
-  await Promise.all([
-    loadAdminTasks(),
-    loadTasks()
-  ]);
 }
 
 async function loadProfile() {
