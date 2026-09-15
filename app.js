@@ -91,6 +91,14 @@ async function loadAdminWithdrawals() { const adminCard = $("adminCard"); const 
     div.innerHTML = `
       <strong>#${task.id} · ${escapeHtml(task.title)}</strong>
       <div class="muted">Reward: ${task.reward_coins} Coins</div>
+
+      <button onclick="editTask(${task.id}, '${escapeHtml(task.title).replace(/'/g, "\\'")}', ${task.reward_coins})">
+        ✏️ Edit
+      </button>
+
+      <button onclick="deleteTask(${task.id})">
+        🗑️ Delete
+      </button>
     `;
 
     box.appendChild(div);
