@@ -101,7 +101,37 @@ async function loadTransactions() {
     box.appendChild(div);
   }
 }
+async function loadWithdrawals() {
+  const { data, error } = await sb.from("withdrawals")
+    .select("id,amount,status,payment_method,created_at")
+    .eq("user_id", currentUser.id)
+    .order("created_at", { ascending: false })
+    .limit(20);
 
+  const box = $("withdrawals");
+  box.innerHTML = "";
+
+  if (error) {
+    box.textContent = error.message;
+    return;
+  }
+
+  if (!data?.length) {
+    box.innerHTML = '<p class="muted">No withdrawals yet.</p>';
+    return;
+  }
+
+  for (const w of data) {
+    const div = document.createElement("div");
+    div.className = "tx";
+    div.innerHTML = `
+      <strong>Withdrawal #${w.id}</strong> · ${w.amount} Coins
+      <div class="muted">${escapeHtml(w.payment_method)} · ${escapeHtml(w.status)}</div>
+      <div class="muted">${new Date(w.created_at).toLocaleString()}</div>
+    `;
+    box.appendChild(div);
+  }
+    
 async function withdraw() {
   const amount = Number($("withdrawAmount").value);
   const method = $("paymentMethod").value;
@@ -126,6 +156,11 @@ async function withdraw() {
 
   $("withdrawMsg").textContent =
     `Withdrawal request #${data} submitted (pending).`;
+
+  await Promise.all([
+    loadProfile(),
+    loadWithdrawals()
+  ]);
 }
 
 function escapeHtml(s) {
