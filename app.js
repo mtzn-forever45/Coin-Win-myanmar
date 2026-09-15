@@ -49,7 +49,7 @@ async function showApp() {
   ]);
 }
 
-async function loadAdminWithdrawals() {
+  async function loadAdminWithdrawals() {
   const adminCard = $("adminCard");
   const box = $("adminWithdrawals");
 
@@ -172,6 +172,7 @@ async function loadAdminTasks() {
     box.appendChild(div);
   }
 }
+
 async function loadProfile() {
   const { data, error } = await sb.from("profiles")
     .select("coin_balance")
