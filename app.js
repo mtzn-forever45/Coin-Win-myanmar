@@ -179,6 +179,7 @@ async function loadAdminTasks() {
   div.append(title, reward, editBtn);
   box.appendChild(div);
 }
+}
 
 async function loadProfile() {
   const { data, error } = await sb.from("profiles")
