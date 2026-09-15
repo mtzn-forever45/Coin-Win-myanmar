@@ -174,6 +174,8 @@ async function loadAdminTasks() {
     const editBtn = document.createElement("button");
 editBtn.textContent = "✏️ Edit";
 editBtn.onclick = () => {
+  editBtn.textContent = "✅ CLICKED";
+};
   alert("Edit button works!");
   editTask(task.id, task.title, task.reward_coins);
 };
