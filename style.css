@@ -66,3 +66,27 @@ button.small{width:auto;padding:9px 14px}
   font-weight: bold;
   cursor: pointer;
 }
+.withdraw-status {
+  display: inline-block;
+  margin-top: 6px;
+  padding: 5px 10px;
+  border-radius: 999px;
+  font-size: 13px;
+  font-weight: bold;
+  text-transform: capitalize;
+}
+
+.withdraw-status.pending {
+  background: #fff3cd;
+  color: #856404;
+}
+
+.withdraw-status.approved {
+  background: #d4edda;
+  color: #155724;
+}
+
+.withdraw-status.rejected {
+  background: #f8d7da;
+  color: #721c24;
+}
