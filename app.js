@@ -131,7 +131,8 @@ async function loadWithdrawals() {
     `;
     box.appendChild(div);
   }
-    
+ }
+
 async function withdraw() {
   const amount = Number($("withdrawAmount").value);
   const method = $("paymentMethod").value;
