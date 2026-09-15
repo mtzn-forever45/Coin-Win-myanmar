@@ -73,19 +73,42 @@ async function loadTasks() {
   const { data, error } = await sb.from("tasks")
     .select("id,title,reward_coins")
     .order("id");
+
   const box = $("tasks");
   box.innerHTML = "";
+
   if (error) {
     box.textContent = error.message;
     return;
   }
+
   for (const task of data || []) {
+    const { data: claim } = await sb
+      .from("task_claims")
+      .select("id")
+      .eq("user_id", currentUser.id)
+      .eq("task_id", task.id)
+      .maybeSingle();
+
     const div = document.createElement("div");
     div.className = "task";
-    div.innerHTML = `<strong>${escapeHtml(task.title)}</strong>
-      <div class="muted">Reward: ${task.reward_coins} Coins</div>
-      <button data-task="${task.id}">Claim Task</button>`;
-    div.querySelector("button").onclick = () => claimTask(task.id);
+
+    if (claim) {
+      div.innerHTML = `
+        <strong>${escapeHtml(task.title)}</strong>
+        <div class="muted">Reward: ${task.reward_coins} Coins</div>
+        <button disabled>✅ Already Claimed</button>
+      `;
+    } else {
+      div.innerHTML = `
+        <strong>${escapeHtml(task.title)}</strong>
+        <div class="muted">Reward: ${task.reward_coins} Coins</div>
+        <button>Claim Task</button>
+      `;
+
+      div.querySelector("button").onclick = () => claimTask(task.id);
+    }
+
     box.appendChild(div);
   }
 }
