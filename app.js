@@ -113,6 +113,38 @@ async function loadTasks() {
   }
 }
 
+async function addTask() {
+  const title = $("taskTitle").value.trim();
+  const reward = Number($("taskReward").value);
+  const msg = $("taskMsg");
+
+  msg.textContent = "";
+
+  if (!title || !reward || reward <= 0) {
+    msg.textContent = "Task title နဲ့ Reward Coins ဖြည့်ပါ။";
+    return;
+  }
+
+  const { error } = await sb
+    .from("tasks")
+    .insert({
+      title: title,
+      reward_coins: reward
+    });
+
+  if (error) {
+    msg.textContent = error.message;
+    return;
+  }
+
+  msg.textContent = "✅ Task added successfully!";
+
+  $("taskTitle").value = "";
+  $("taskReward").value = "";
+
+  await loadTasks();
+}
+
 async function claimTask(taskId) {
   const { data, error } = await sb.rpc("claim_task", { p_task_id: taskId });
   if (error) {
