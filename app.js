@@ -50,6 +50,47 @@ async function loadAdminWithdrawals() { const adminCard = $("adminCard"); const 
     p_status: status
   });
 
+  async function loadAdminTasks() {
+  const box = $("adminTasks");
+  box.innerHTML = "";
+
+  const { data: admin, error: adminError } = await sb
+    .from("admins")
+    .select("user_id")
+    .eq("user_id", currentUser.id)
+    .maybeSingle();
+
+  if (adminError || !admin) {
+    return;
+  }
+
+  const { data, error } = await sb
+    .from("tasks")
+    .select("id,title,reward_coins")
+    .order("id");
+
+  if (error) {
+    box.textContent = error.message;
+    return;
+  }
+
+  if (!data?.length) {
+    box.innerHTML = '<p class="muted">No tasks yet.</p>';
+    return;
+  }
+
+  for (const task of data) {
+    const div = document.createElement("div");
+    div.className = "tx";
+
+    div.innerHTML = `
+      <strong>#${task.id} · ${escapeHtml(task.title)}</strong>
+      <div class="muted">Reward: ${task.reward_coins} Coins</div>
+    `;
+
+    box.appendChild(div);
+  }
+  }
   if (error) {
     alert(error.message);
     return;
