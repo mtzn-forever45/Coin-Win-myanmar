@@ -161,16 +161,23 @@ async function loadAdminTasks() {
   }
 
   for (const task of data) {
-    const div = document.createElement("div");
-    div.className = "tx";
+  const div = document.createElement("div");
+  div.className = "tx";
 
-    div.innerHTML = `
-      <strong>#${task.id} · ${escapeHtml(task.title)}</strong>
-      <div class="muted">Reward: ${task.reward_coins} Coins</div>
-    `;
+  const title = document.createElement("strong");
+  title.textContent = `#${task.id} · ${task.title}`;
 
-    box.appendChild(div);
-  }
+  const reward = document.createElement("div");
+  reward.className = "muted";
+  reward.textContent = `Reward: ${task.reward_coins} Coins`;
+
+  const editBtn = document.createElement("button");
+  editBtn.textContent = "✏️ Edit";
+  editBtn.onclick = () =>
+    editTask(task.id, task.title, task.reward_coins);
+
+  div.append(title, reward, editBtn);
+  box.appendChild(div);
 }
 
 async function loadProfile() {
