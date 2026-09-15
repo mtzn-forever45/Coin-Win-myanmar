@@ -88,11 +88,40 @@ async function loadAdminWithdrawals() {
       <div class="muted">${escapeHtml(w.payment_method)} · ${escapeHtml(w.status)}</div>
       <div class="muted">${escapeHtml(w.payment_account)}</div>
       <div class="muted">${new Date(w.created_at).toLocaleString()}</div>
+
+      ${
+        w.status === "pending"
+          ? `
+            <button onclick="updateWithdrawalStatus(${w.id}, 'approved')">
+              ✅ Approve
+            </button>
+            <button onclick="updateWithdrawalStatus(${w.id}, 'rejected')">
+              ❌ Reject
+            </button>
+          `
+          : ""
+      }
     `;
 
     box.appendChild(div);
   }
 }
+
+async function updateWithdrawalStatus(id, status) {
+  const { error } = await sb
+    .from("withdrawals")
+    .update({ status })
+    .eq("id", id);
+
+  if (error) {
+    alert(error.message);
+    return;
+  }
+
+  alert(`Withdrawal #${id} → ${status}`);
+  await loadAdminWithdrawals();
+}
+
 async function loadProfile() {
   const { data, error } = await sb.from("profiles")
     .select("coin_balance")
