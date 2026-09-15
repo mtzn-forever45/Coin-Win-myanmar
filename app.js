@@ -104,23 +104,42 @@ async function loadTransactions() {
   const { data, error } = await sb.from("coin_transactions")
     .select("amount,type,created_at")
     .eq("user_id", currentUser.id)
-    .order("created_at", { ascending:false })
+    .order("created_at", { ascending: false })
     .limit(30);
+
   const box = $("transactions");
   box.innerHTML = "";
+
   if (error) {
     box.textContent = error.message;
     return;
   }
+
   if (!data?.length) {
     box.innerHTML = '<p class="muted">No transactions yet.</p>';
     return;
   }
+
   for (const t of data) {
     const div = document.createElement("div");
     div.className = "tx";
-    div.innerHTML = `<strong>+${t.amount} Coins</strong> · ${escapeHtml(t.type)}
-      <div class="muted">${new Date(t.created_at).toLocaleString()}</div>`;
+
+    let label = t.type;
+    let prefix = t.amount >= 0 ? "+" : "";
+
+    if (t.type === "task_reward") {
+      label = "🎯 Task Reward";
+    } else if (t.type === "withdrawal_approved") {
+      label = "💳 Withdrawal Approved";
+    } else if (t.type === "withdrawal_rejected_refund") {
+      label = "↩️ Withdrawal Refund";
+    }
+
+    div.innerHTML = `
+      <strong>${prefix}${t.amount} Coins</strong> · ${escapeHtml(label)}
+      <div class="muted">${new Date(t.created_at).toLocaleString()}</div>
+    `;
+
     box.appendChild(div);
   }
 }
