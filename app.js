@@ -159,9 +159,11 @@ async function withdraw() {
     `Withdrawal request #${data} submitted (pending).`;
 
   await Promise.all([
-    loadProfile(),
-    loadWithdrawals()
-  ]);
+  loadProfile(),
+  loadTasks(),
+  loadTransactions(),
+  loadWithdrawals()
+]);
 }
 
 function escapeHtml(s) {
