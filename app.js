@@ -41,9 +41,58 @@ async function showApp() {
     loadTasks(),
     loadTransactions(),
     loadWithdrawals()
-  ]);
+  ]);await loadAdminWithdrawals();
 }
 
+async function loadAdminWithdrawals() {
+  const adminCard = $("adminCard");
+  const box = $("adminWithdrawals");
+
+  const { data: admin, error: adminError } = await sb
+    .from("admins")
+    .select("user_id")
+    .eq("user_id", currentUser.id)
+    .maybeSingle();
+
+  if (adminError || !admin) {
+    adminCard.hidden = true;
+    return;
+  }
+
+  adminCard.hidden = false;
+
+  const { data, error } = await sb
+    .from("withdrawals")
+    .select("id,user_id,amount,status,payment_method,payment_account,created_at")
+    .order("created_at", { ascending: false })
+    .limit(50);
+
+  box.innerHTML = "";
+
+  if (error) {
+    box.textContent = error.message;
+    return;
+  }
+
+  if (!data?.length) {
+    box.innerHTML = '<p class="muted">No withdrawals yet.</p>';
+    return;
+  }
+
+  for (const w of data) {
+    const div = document.createElement("div");
+    div.className = "tx";
+
+    div.innerHTML = `
+      <strong>Withdrawal #${w.id} · ${w.amount} Coins</strong>
+      <div class="muted">${escapeHtml(w.payment_method)} · ${escapeHtml(w.status)}</div>
+      <div class="muted">${escapeHtml(w.payment_account)}</div>
+      <div class="muted">${new Date(w.created_at).toLocaleString()}</div>
+    `;
+
+    box.appendChild(div);
+  }
+}
 async function loadProfile() {
   const { data, error } = await sb.from("profiles")
     .select("coin_balance")
