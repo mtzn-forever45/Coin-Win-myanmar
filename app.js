@@ -35,7 +35,13 @@ async function showApp() {
   $("authCard").hidden = true;
   $("app").hidden = false;
   $("userEmail").textContent = currentUser.email || "";
-  await Promise.all([loadProfile(), loadTasks(), loadTransactions()]);
+
+  await Promise.all([
+    loadProfile(),
+    loadTasks(),
+    loadTransactions(),
+    loadWithdrawals()
+  ]);
 }
 
 async function loadProfile() {
