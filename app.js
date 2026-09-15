@@ -49,13 +49,89 @@ async function showApp() {
   ]);
 }
 
-async function loadAdminWithdrawals() { const adminCard = $("adminCard"); const box = $("adminWithdrawals"); const { data: admin, error: adminError } = await sb .from("admins") .select("user_id") .eq("user_id", currentUser.id) .maybeSingle(); if (adminError || !admin) { adminCard.hidden = true; return; } adminCard.hidden = false; const { data, error } = await sb .from("withdrawals") .select("id,user_id,amount,status,payment_method,payment_account,created_at") .order("created_at", { ascending: false }) .limit(50); box.innerHTML = ""; if (error) { box.textContent = error.message; return; } if (!data?.length) { box.innerHTML = '<p class="muted">No withdrawals yet.</p>'; return; } for (const w of data) { const div = document.createElement("div"); div.className = "tx"; div.innerHTML = ` <strong>Withdrawal #${w.id} · ${w.amount} Coins</strong> <div class="muted">${escapeHtml(w.payment_method)} · ${escapeHtml(w.status)}</div> <div class="muted">${escapeHtml(w.payment_account)}</div> <div class="muted">${new Date(w.created_at).toLocaleString()}</div> ${ w.status === "pending" ? ` <button onclick="updateWithdrawalStatus(${w.id}, 'approved')"> ✅ Approve </button> <button onclick="updateWithdrawalStatus(${w.id}, 'rejected')"> ❌ Reject </button> ` : "" } `; box.appendChild(div); } } async function updateWithdrawalStatus(id, status) {
+async function loadAdminWithdrawals() {
+  const adminCard = $("adminCard");
+  const box = $("adminWithdrawals");
+
+  const { data: admin, error: adminError } = await sb
+    .from("admins")
+    .select("user_id")
+    .eq("user_id", currentUser.id)
+    .maybeSingle();
+
+  if (adminError || !admin) {
+    adminCard.hidden = true;
+    return;
+  }
+
+  adminCard.hidden = false;
+
+  const { data, error } = await sb
+    .from("withdrawals")
+    .select("id,user_id,amount,status,payment_method,payment_account,created_at")
+    .order("created_at", { ascending: false })
+    .limit(50);
+
+  box.innerHTML = "";
+
+  if (error) {
+    box.textContent = error.message;
+    return;
+  }
+
+  if (!data?.length) {
+    box.innerHTML = '<p class="muted">No withdrawals yet.</p>';
+    return;
+  }
+
+  for (const w of data) {
+    const div = document.createElement("div");
+    div.className = "tx";
+
+    div.innerHTML = `
+      <strong>Withdrawal #${w.id} · ${w.amount} Coins</strong>
+      <div class="muted">${escapeHtml(w.payment_method)} · ${escapeHtml(w.status)}</div>
+      <div class="muted">${escapeHtml(w.payment_account)}</div>
+      <div class="muted">${new Date(w.created_at).toLocaleString()}</div>
+
+      ${
+        w.status === "pending"
+          ? `
+            <button onclick="updateWithdrawalStatus(${w.id}, 'approved')">
+              ✅ Approve
+            </button>
+            <button onclick="updateWithdrawalStatus(${w.id}, 'rejected')">
+              ❌ Reject
+            </button>
+          `
+          : ""
+      }
+    `;
+
+    box.appendChild(div);
+  }
+}
+
+async function updateWithdrawalStatus(id, status) {
   const { error } = await sb.rpc("update_withdrawal_status", {
     p_withdrawal_id: id,
     p_status: status
   });
 
-  async function loadAdminTasks() {
+  if (error) {
+    alert(error.message);
+    return;
+  }
+
+  alert(`Withdrawal #${id} → ${status}`);
+
+  await Promise.all([
+    loadAdminWithdrawals(),
+    loadProfile()
+  ]);
+}
+
+async function loadAdminTasks() {
   const box = $("adminTasks");
   box.innerHTML = "";
 
@@ -91,37 +167,10 @@ async function loadAdminWithdrawals() { const adminCard = $("adminCard"); const 
     div.innerHTML = `
       <strong>#${task.id} · ${escapeHtml(task.title)}</strong>
       <div class="muted">Reward: ${task.reward_coins} Coins</div>
-
-      <button onclick="editTask(${task.id}, '${escapeHtml(task.title).replace(/'/g, "\\'")}', ${task.reward_coins})">
-        ✏️ Edit
-      </button>
-
-      <button onclick="deleteTask(${task.id})">
-        🗑️ Delete
-      </button>
     `;
 
     box.appendChild(div);
   }
-}
-
-async function updateWithdrawalStatus(id, status) {
-  const { error } = await sb.rpc("update_withdrawal_status", {
-    p_withdrawal_id: id,
-    p_status: status
-  });
-
-  if (error) {
-    alert(error.message);
-    return;
-  }
-
-  alert(`Withdrawal #${id} → ${status}`);
-
-  await Promise.all([
-    loadAdminWithdrawals(),
-    loadProfile()
-  ]);
 }
 async function loadProfile() {
   const { data, error } = await sb.from("profiles")
