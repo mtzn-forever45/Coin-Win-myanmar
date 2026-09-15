@@ -221,14 +221,19 @@ async function loadWithdrawals() {
   for (const w of data) {
     const div = document.createElement("div");
     div.className = "tx";
+
     div.innerHTML = `
       <strong>Withdrawal #${w.id}</strong> · ${w.amount} Coins
-      <div class="muted">${escapeHtml(w.payment_method)} · ${escapeHtml(w.status)}</div>
+      <div class="muted">${escapeHtml(w.payment_method)}</div>
+      <span class="withdraw-status ${escapeHtml(w.status)}">
+        ${escapeHtml(w.status)}
+      </span>
       <div class="muted">${new Date(w.created_at).toLocaleString()}</div>
     `;
+
     box.appendChild(div);
   }
- }
+}
 
 async function withdraw() {
   const amount = Number($("withdrawAmount").value);
