@@ -491,7 +491,10 @@ $("withdrawBtn").onclick = withdraw;
   }
 })();
 
-$("saveReferralBonusBtn").onclick = saveReferralBonus;
+const saveReferralBonusBtn = $("saveReferralBonusBtn");
+if (saveReferralBonusBtn) {
+  saveReferralBonusBtn.onclick = saveReferralBonus;
+}
 
 async function setupReferral() {
   const { data, error } = await sb
@@ -536,5 +539,3 @@ $("copyReferralBtn").onclick = async () => {
 
   $("referralMsg").textContent = "✅ Invite Link copied!";
 };
-
-$("loginBtn").onclick = login;
