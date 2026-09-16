@@ -168,10 +168,13 @@ async function loadAdminTasks() {
       <strong>#${task.id} · ${escapeHtml(task.title)}</strong>
       <div class="muted">Reward: ${task.reward_coins} Coins</div>
       <button onclick="editTask(${task.id}, '${escapeHtml(task.title)}', ${task.reward_coins})">
-        ✏️ Edit
-      </button>
-    `;
+  ✏️ Edit
+</button>
 
+<button onclick="deleteTask(${task.id})">
+  🗑️ Delete
+</button>
+`;
     box.appendChild(div);
   }
 }
