@@ -128,9 +128,7 @@ async function loadProfile() {
 // =========================
 
 async function loadTasks() {
-
   const box = $("tasks");
-
   if (!box) return;
 
   box.innerHTML = "";
@@ -146,7 +144,6 @@ async function loadTasks() {
   }
 
   for (const task of data || []) {
-
     const { data: claim } = await sb
       .from("task_claims")
       .select("id")
@@ -155,10 +152,52 @@ async function loadTasks() {
       .maybeSingle();
 
     const div = document.createElement("div");
-
     div.className = "task";
 
-    if (claim) {
+    // Watch video task
+    if (task.title.toLowerCase().includes("watch video") && !claim) {
+
+      div.innerHTML = `
+        <strong>🎥 ${escapeHtml(task.title)}</strong>
+        <div class="muted">
+          Reward: ${task.reward_coins} Coins
+        </div>
+
+        <button class="watchBtn">
+          ▶️ Watch Video
+        </button>
+
+        <button class="claimBtn" disabled>
+          🔒 Claim after watching
+        </button>
+
+        <p class="videoMsg muted"></p>
+      `;
+
+      const watchBtn = div.querySelector(".watchBtn");
+      const claimBtn = div.querySelector(".claimBtn");
+      const videoMsg = div.querySelector(".videoMsg");
+
+      watchBtn.onclick = () => {
+        videoMsg.textContent =
+          "🎬 Video ကြည့်နေပါတယ်...";
+
+        watchBtn.disabled = true;
+
+        // Demo video watch time
+        setTimeout(() => {
+          videoMsg.textContent =
+            "✅ Video ကြည့်ပြီးပါပြီ။ Claim လုပ်နိုင်ပါပြီ။";
+
+          claimBtn.disabled = false;
+        }, 5000);
+      };
+
+      claimBtn.onclick = () => {
+        claimTask(task.id);
+      };
+
+    } else if (claim) {
 
       div.innerHTML = `
         <strong>${escapeHtml(task.title)}</strong>
@@ -189,7 +228,6 @@ async function loadTasks() {
     box.appendChild(div);
   }
 }
-
 
 // =========================
 // CLAIM TASK
