@@ -1002,8 +1002,7 @@ if (logoutBtn) {
     copyReferralBtn.onclick = function () {
 
       const linkBox = $("referralLink");
-      const msg = $("referralMsg");
-
+      const msg = $("adminReferralMsg");
       if (!linkBox) {
         alert("Referral Link box မတွေ့ပါ။");
         return;
