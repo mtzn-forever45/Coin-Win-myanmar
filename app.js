@@ -11,41 +11,37 @@ let currentUser = null;
 const $ = id => document.getElementById(id);
 
 async function login() {
-  const { data, error } = await sb.auth.signInWithPassword({
-    email: $("email").value.trim(),
-    password: $("password").value
-  });
-  if (error) return $("authMsg").textContent = error.message;
-  currentUser = data.user;
-  await showApp();
-}
+  const msg = $("authMsg");
+  msg.textContent = "Logging in...";
 
-async function signup() {
-  const referralCode =
-    new URLSearchParams(location.search).get("ref");
+  try {
+    const email = $("email").value.trim();
+    const password = $("password").value;
 
-  const { data, error } = await sb.auth.signUp({
-    email: $("email").value.trim(),
-    password: $("password").value
-  });
+    if (!email || !password) {
+      msg.textContent = "Email နဲ့ Password ဖြည့်ပါ။";
+      return;
+    }
 
-  if (error) {
-    $("authMsg").textContent = error.message;
-    return;
-  }
-
-  $("authMsg").textContent = data.session
-    ? "Account created."
-    : "Account created. Check your email if confirmation is enabled.";
-
-  if (data.session && referralCode) {
-    const { error: referralError } = await sb.rpc("apply_referral", {
-      p_referral_code: referralCode
+    const { data, error } = await sb.auth.signInWithPassword({
+      email: email,
+      password: password
     });
 
-    if (referralError) {
-      console.log("Referral:", referralError.message);
+    if (error) {
+      msg.textContent = "❌ " + error.message;
+      return;
     }
+
+    currentUser = data.user;
+
+    msg.textContent = "✅ Login successful!";
+
+    await showApp();
+
+  } catch (err) {
+    msg.textContent = "❌ " + err.message;
+    console.error(err);
   }
 }
 
