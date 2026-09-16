@@ -974,9 +974,9 @@ document.addEventListener("DOMContentLoaded", () => {
 
   const signupBtn = $("signupBtn");
 
-  if (signupBtn) {
-    signupBtn.onclick = signup;
-  }
+  if (signupBtn && typeof signup === "function") {
+  signupBtn.onclick = signup;
+}
 
   const logoutBtn = $("logoutBtn");
 
