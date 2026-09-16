@@ -961,6 +961,10 @@ async function saveReferralBonus() {
   }
 }
 
+async function logoutUser() {
+  await sb.auth.signOut();
+  location.reload();
+}
 
 // =========================
 // EVENTS
