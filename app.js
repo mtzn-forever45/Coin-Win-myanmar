@@ -319,9 +319,8 @@ async function addTask() {
 }
 
 async function saveReferralBonus() {
-  const input = $("referralBonus");
+  const bonus = Number($("referralBonus").value);
   const msg = $("referralMsg");
-  const bonus = Number(input.value);
 
   msg.textContent = "";
 
@@ -336,7 +335,7 @@ async function saveReferralBonus() {
     .eq("key", "referral_bonus_coins");
 
   if (error) {
-    msg.textContent = error.message;
+    msg.textContent = "❌ " + error.message;
     return;
   }
 
