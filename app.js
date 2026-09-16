@@ -167,11 +167,15 @@ async function loadAdminTasks() {
     div.innerHTML = `
       <strong>#${task.id} · ${escapeHtml(task.title)}</strong>
       <div class="muted">Reward: ${task.reward_coins} Coins</div>
+      <button onclick="editTask(${task.id}, '${escapeHtml(task.title)}', ${task.reward_coins})">
+        ✏️ Edit
+      </button>
     `;
 
     box.appendChild(div);
   }
 }
+
 async function editTask(id, oldTitle, oldReward) {
   const title = prompt("Task title:", oldTitle);
   if (title === null) return;
