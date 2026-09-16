@@ -490,3 +490,5 @@ $("withdrawBtn").onclick = withdraw;
     await showApp();
   }
 })();
+
+$("saveReferralBonusBtn").onclick = saveReferralBonus;
