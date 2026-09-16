@@ -30,44 +30,51 @@ function setMessage(id, message) {
 // =========================
 
 async function login() {
-  const msg = document.getElementById("authMsg");
+  const msg = $("authMsg");
 
-  if (msg) {
-    msg.textContent = "🟢 LOGIN BUTTON အလုပ်လုပ်ပါတယ်";
-  }
-
-  alert("LOGIN FUNCTION အလုပ်လုပ်ပါတယ်");
-}
-
-async function signup() {
   const email = $("email")?.value.trim();
   const password = $("password")?.value;
 
   if (!email || !password) {
-    setMessage("authMsg", "Email နဲ့ Password ဖြည့်ပါ။");
+    if (msg) msg.textContent = "❌ Email နဲ့ Password ဖြည့်ပါ။";
     return;
   }
 
+  if (msg) {
+    msg.textContent = "🔄 Login လုပ်နေပါတယ်...";
+  }
+
   try {
-    const { data, error } = await sb.auth.signUp({
-      email,
-      password
-    });
+    const { data, error } =
+      await sb.auth.signInWithPassword({
+        email,
+        password
+      });
 
     if (error) {
-      setMessage("authMsg", "❌ " + error.message);
+      console.error(error);
+
+      if (msg) {
+        msg.textContent = "❌ " + error.message;
+      }
+
       return;
     }
 
-    if (data.user) {
-      setMessage(
-        "authMsg",
-        "✅ Register အောင်မြင်ပါတယ်။ Email confirmation လိုရင် Email ကိုစစ်ပါ။"
-      );
+    currentUser = data.user;
+
+    if (msg) {
+      msg.textContent = "✅ Login အောင်မြင်ပါပြီ။";
     }
 
+    await showApp();
+
   } catch (err) {
-    setMessage("authMsg", "❌ " + err.message);
+    console.error(err);
+
+    if (msg) {
+      msg.textContent = "❌ " + err.message;
+    }
   }
 }
 
