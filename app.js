@@ -922,21 +922,22 @@ async function setupReferral() {
 // =========================
 
 async function saveReferralBonus() {
+  const input = document.getElementById("referralBonus");
+  const msg = document.getElementById("adminReferralMsg");
 
-  const bonus = Number($("referralBonus")?.value);
-  const msg = $("adminReferralMsg");
-
-  if (!Number.isInteger(bonus) || bonus <= 0) {
-    if (msg) {
-      msg.textContent =
-        "Referral Bonus Coins မှန်မှန်ထည့်ပါ။";
-    }
+  if (!input || !msg) {
+    alert("Referral Bonus HTML element မတွေ့ပါ");
     return;
   }
 
-  if (msg) {
-    msg.textContent = "Saving...";
+  const bonus = Number(input.value);
+
+  if (!Number.isInteger(bonus) || bonus <= 0) {
+    msg.textContent = "Referral Bonus Coins မှန်မှန်ထည့်ပါ။";
+    return;
   }
+
+  msg.textContent = "Saving...";
 
   const { error } = await sb
     .from("app_settings")
@@ -944,16 +945,11 @@ async function saveReferralBonus() {
     .eq("key", "referral_bonus_coins");
 
   if (error) {
-    if (msg) {
-      msg.textContent = "❌ " + error.message;
-    }
+    msg.textContent = "❌ " + error.message;
     return;
   }
 
-  if (msg) {
-    msg.textContent =
-      `✅ Referral Bonus = ${bonus} Coins`;
-  }
+  msg.textContent = `✅ Referral Bonus = ${bonus} Coins`;
 }
 
 async function logoutUser() {
