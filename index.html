@@ -6,118 +6,205 @@
   <title>Coin Win Myanmar</title>
   <link rel="stylesheet" href="style.css">
 </head>
+
 <body>
   <main class="container">
+
+    <!-- LOGIN / REGISTER -->
     <section class="card" id="authCard">
       <h1>🪙 Coin Win Myanmar</h1>
       <p class="muted">Demo Website</p>
- <input id="email" type="email" placeholder="Email">
-<input id="password" type="password" placeholder="Password">
 
-<div class="row">
-  <button onclick="login()">Login</button>
-  <button id="signupBtn" class="secondary">Register</button>
-</div>
+      <input id="email" type="email" placeholder="Email">
+      <input id="password" type="password" placeholder="Password">
 
-<p id="authMsg" class="msg"></p>
+      <div class="row">
+        <button onclick="login()">Login</button>
+        <button id="signupBtn" class="secondary">Register</button>
+      </div>
+
+      <p id="authMsg" class="msg"></p>
     </section>
 
+
+    <!-- MAIN APP -->
     <section id="app" hidden>
+
+      <!-- HEADER -->
       <header class="top">
         <div>
           <h1>🪙 Coin Win Myanmar</h1>
           <p id="userEmail" class="muted"></p>
         </div>
-        <button id="logoutBtn" class="secondary small">Logout</button>
+
+        <button id="logoutBtn" class="secondary small">
+          Logout
+        </button>
       </header>
 
+
+      <!-- BALANCE -->
       <section class="balance card">
         <span>Coin Balance</span>
         <strong id="balance">0</strong>
         <span>Coins</span>
       </section>
 
-      <section class="card">
-        <h2>🎯 Tasks</h2>
-        <div id="tasks"></div>
-      </section>
+
+      <!-- TASKS -->
       <section class="card">
         <h2>🎯 Tasks</h2>
         <div id="tasks"></div>
       </section>
 
+
+      <!-- REFERRAL -->
       <section class="card">
         <h2>👥 Invite Friends</h2>
-        <p class="muted">သူငယ်ချင်းကို Invite လုပ်ပြီး 10 Coins ရယူပါ။</p>
 
-        <input id="referralLink" type="text" readonly placeholder="Your referral link">
+        <p class="muted">
+          သူငယ်ချင်းကို Invite လုပ်ပြီး 10 Coins ရယူပါ။
+        </p>
 
-        <button id="copyReferralBtn">🔗 Copy Invite Link</button>
+        <input
+          id="referralLink"
+          type="text"
+          readonly
+          placeholder="Your referral link"
+        >
+
+        <button id="copyReferralBtn">
+          🔗 Copy Invite Link
+        </button>
 
         <p id="referralMsg" class="msg"></p>
       </section>
 
+
+      <!-- WITHDRAWAL -->
       <section class="card">
         <h2>💳 Withdrawal Demo</h2>
-      <section class="card">
-        <h2>💳 Withdrawal Demo</h2>
-        <p class="muted">ဒီနေရာမှာ withdrawal request ကို စမ်းသပ်နိုင်ပါတယ်။</p>
-        <input id="withdrawAmount" type="number" min="1" placeholder="Coin amount">
+
+        <p class="muted">
+          ဒီနေရာမှာ withdrawal request ကို စမ်းသပ်နိုင်ပါတယ်။
+        </p>
+
+        <input
+          id="withdrawAmount"
+          type="number"
+          min="1"
+          placeholder="Coin amount"
+        >
+
         <select id="paymentMethod">
           <option>Wave Money</option>
           <option>KBZPay</option>
           <option>KBZPay Bank</option>
         </select>
-        <input id="paymentAccount" placeholder="Demo account / phone">
-        <button id="withdrawBtn">Request Withdrawal</button>
+
+        <input
+          id="paymentAccount"
+          placeholder="Demo account / phone"
+        >
+
+        <button id="withdrawBtn">
+          Request Withdrawal
+        </button>
+
         <p id="withdrawMsg" class="msg"></p>
       </section>
 
-     <section class="card">
-  <h2>📋 Withdrawal History</h2>
-  <div id="withdrawals"></div>
-</section>
 
-<section class="card">
-  <h2>📜 Transactions</h2>
-  <div id="transactions"></div>
-</section>
+      <!-- WITHDRAWAL HISTORY -->
+      <section class="card">
+        <h2>📋 Withdrawal History</h2>
+        <div id="withdrawals"></div>
+      </section>
 
-<section class="card" id="adminCard" hidden>
-  <h2>👑 Admin Panel</h2>
 
-  <h3>➕ Add Task</h3>
+      <!-- TRANSACTIONS -->
+      <section class="card">
+        <h2>📜 Transactions</h2>
+        <div id="transactions"></div>
+      </section>
 
-<input id="taskTitle" type="text" placeholder="Task title">
-<input id="taskReward" type="number" placeholder="Reward Coins">
 
-<button onclick="addTask()">Add Task</button>
+      <!-- ADMIN PANEL -->
+      <section class="card" id="adminCard" hidden>
 
-<p id="taskMsg" class="muted"></p>
+        <h2>👑 Admin Panel</h2>
 
-<hr>
 
-<h3>👥 Referral Bonus</h3>
+        <!-- ADD TASK -->
+        <h3>➕ Add Task</h3>
 
-<input id="referralBonus" type="number" placeholder="Referral Bonus Coins">
+        <input
+          id="taskTitle"
+          type="text"
+          placeholder="Task title"
+        >
 
-<button onclick="saveReferralBonus()">Save Referral Bonus</button>
+        <input
+          id="taskReward"
+          type="number"
+          placeholder="Reward Coins"
+        >
 
-<p id="referralMsg" class="muted"></p>
+        <button onclick="addTask()">
+          Add Task
+        </button>
 
-<hr>
+        <p id="taskMsg" class="muted"></p>
 
-<h3>🎯 Task Management</h3>
-<div id="adminTasks"></div>
 
-<hr>
+        <hr>
 
-<h3>💳 Withdrawal Requests</h3>
-<div id="adminWithdrawals"></div>
+
+        <!-- REFERRAL BONUS -->
+        <h3>👥 Referral Bonus</h3>
+
+        <input
+          id="referralBonus"
+          type="number"
+          placeholder="Referral Bonus Coins"
+        >
+
+        <button onclick="saveReferralBonus()">
+          Save Referral Bonus
+        </button>
+
+        <p id="adminReferralMsg" class="muted"></p>
+
+
+        <hr>
+
+
+        <!-- TASK MANAGEMENT -->
+        <h3>🎯 Task Management</h3>
+
+        <div id="adminTasks"></div>
+
+
+        <hr>
+
+
+        <!-- WITHDRAWAL REQUESTS -->
+        <h3>💳 Withdrawal Requests</h3>
+
+        <div id="adminWithdrawals"></div>
+
+      </section>
+
     </section>
+
   </main>
 
+
+  <!-- SUPABASE -->
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+
+  <!-- APP JS -->
   <script src="app.js?v=5"></script>
+
 </body>
 </html>
