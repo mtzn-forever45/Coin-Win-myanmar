@@ -536,3 +536,5 @@ $("copyReferralBtn").onclick = async () => {
 
   $("referralMsg").textContent = "✅ Invite Link copied!";
 };
+
+$("loginBtn").onclick = login;
