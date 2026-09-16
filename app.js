@@ -923,35 +923,40 @@ async function setupReferral() {
 
 async function saveReferralBonus() {
 
-  const bonus =
-    Number($("referralBonus")?.value);
-
+  const bonusInput = $("referralBonus");
   const msg = $("referralMsg");
 
+  const bonus = Number(bonusInput?.value);
+
   if (!Number.isInteger(bonus) || bonus <= 0) {
-
     if (msg) {
-      msg.textContent =
-        "Referral Bonus Coins မှန်မှန်ထည့်ပါ။";
+      msg.textContent = "Referral Bonus Coins မှန်မှန်ထည့်ပါ။";
     }
-
     return;
   }
 
-  const { error } = await sb
+  if (msg) {
+    msg.textContent = "Saving...";
+  }
+
+  const { data, error } = await sb
     .from("app_settings")
-    .update({
-      value: bonus
-    })
-    .eq("key", "referral_bonus_coins");
+    .update({ value: bonus })
+    .eq("key", "referral_bonus_coins")
+    .select();
 
   if (error) {
+    if (msg) {
+      msg.textContent = "❌ " + error.message;
+    }
+    return;
+  }
 
+  if (!data || data.length === 0) {
     if (msg) {
       msg.textContent =
-        "❌ " + error.message;
+        "❌ referral_bonus_coins row မတွေ့ပါ။";
     }
-
     return;
   }
 
