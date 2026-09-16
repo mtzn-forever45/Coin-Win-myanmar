@@ -317,6 +317,30 @@ async function addTask() {
 
   await loadTasks();
 }
+async function saveReferralBonus() {
+  const input = $("referralBonus");
+  const msg = $("referralMsg");
+  const bonus = Number(input.value);
+
+  msg.textContent = "";
+
+  if (!Number.isInteger(bonus) || bonus <= 0) {
+    msg.textContent = "Referral Bonus Coins မှန်မှန်ထည့်ပါ။";
+    return;
+  }
+
+  const { error } = await sb
+    .from("app_settings")
+    .update({ value: bonus })
+    .eq("key", "referral_bonus_coins");
+
+  if (error) {
+    msg.textContent = error.message;
+    return;
+  }
+
+  msg.textContent = `✅ Referral Bonus = ${bonus} Coins`;
+}
 
 async function claimTask(taskId) {
   const { data, error } = await sb.rpc("claim_task", { p_task_id: taskId });
