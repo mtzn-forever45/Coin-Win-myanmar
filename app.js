@@ -926,7 +926,7 @@ async function saveReferralBonus() {
   const msg = document.getElementById("adminReferralMsg");
 
   if (!input || !msg) {
-    alert("Referral Bonus HTML element မတွေ့ပါ");
+    alert("Referral Bonus element မတွေ့ပါ");
     return;
   }
 
@@ -1030,6 +1030,14 @@ if (logoutBtn) {
   }
 
 });
+
+const saveReferralBonusBtn =
+  $("saveReferralBonusBtn");
+
+if (saveReferralBonusBtn) {
+  saveReferralBonusBtn.onclick =
+    saveReferralBonus;
+}
 
 // =========================
 // AUTO LOGIN
