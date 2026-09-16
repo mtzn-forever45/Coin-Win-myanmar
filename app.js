@@ -991,58 +991,41 @@ document.addEventListener(
       withdrawBtn.onclick = withdraw;
     }
 
-    const saveReferralBonusBtn =
-      $("saveReferralBonusBtn");
+    const copyReferralBtn = $("copyReferralBtn");
 
-    if (saveReferralBonusBtn) {
-      saveReferralBonusBtn.onclick =
-        saveReferralBonus;
+if (copyReferralBtn) {
+
+  copyReferralBtn.onclick = () => {
+
+    const linkBox = $("referralLink");
+    const msg = $("referralMsg");
+
+    if (!linkBox || !linkBox.value) {
+      if (msg) {
+        msg.textContent = "❌ Invite Link မရှိသေးပါ။";
+      }
+      return;
     }
 
-    const copyReferralBtn =
-      $("copyReferralBtn");
+    linkBox.focus();
+    linkBox.select();
 
-    if (copyReferralBtn) {
+    try {
+      document.execCommand("copy");
 
-      copyReferralBtn.onclick = async () => {
+      if (msg) {
+        msg.textContent = "✅ Invite Link copied!";
+      }
 
-        const link =
-          $("referralLink")?.value;
+    } catch (err) {
 
-        if (!link) {
-          setMessage(
-            "referralMsg",
-            "❌ Invite Link မရှိသေးပါ။"
-          );
-          return;
-        }
-
-        try {
-
-          await navigator.clipboard.writeText(link);
-
-          setMessage(
-            "referralMsg",
-            "✅ Invite Link copied!"
-          );
-
-        } catch (err) {
-
-          console.error(
-            "COPY ERROR:",
-            err
-          );
-
-          setMessage(
-            "referralMsg",
-            "Link ကို ဖိထားပြီး Copy လုပ်ပါ။"
-          );
-        }
-      };
+      if (msg) {
+        msg.textContent =
+          "📋 Link ကို ဖိထားပြီး Copy လုပ်ပါ။";
+      }
     }
-
-  }
-);
+  };
+}
 
 
 // =========================
