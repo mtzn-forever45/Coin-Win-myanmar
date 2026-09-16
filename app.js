@@ -21,33 +21,32 @@ async function login() {
 }
 
 async function signup() {
+  const referralCode =
+    new URLSearchParams(location.search).get("ref");
+
   const { data, error } = await sb.auth.signUp({
     email: $("email").value.trim(),
     password: $("password").value
   });
-  if (error) return $("authMsg").textContent = error.message;
+
+  if (error) {
+    $("authMsg").textContent = error.message;
+    return;
+  }
+
   $("authMsg").textContent = data.session
     ? "Account created."
     : "Account created. Check your email if confirmation is enabled.";
-}
 
-async function showApp() {
-  $("authCard").hidden = true;
-  $("app").hidden = false;
-  $("userEmail").textContent = currentUser.email || "";
+  if (data.session && referralCode) {
+    const { error: referralError } = await sb.rpc("apply_referral", {
+      p_referral_code: referralCode
+    });
 
-  await Promise.all([
-    loadProfile(),
-    loadTasks(),
-    loadTransactions(),
-    loadWithdrawals()
-  ]);
-
-  await Promise.all([
-    loadAdminWithdrawals(),
-    loadAdminTasks()
-  await setupReferral();
-]);
+    if (referralError) {
+      console.log("Referral:", referralError.message);
+    }
+  }
 }
 
   async function loadAdminWithdrawals() {
