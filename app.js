@@ -966,67 +966,79 @@ async function saveReferralBonus() {
 // EVENTS
 // =========================
 
-document.addEventListener(
-  "DOMContentLoaded",
-  () => {
+document.addEventListener("DOMContentLoaded", () => {
 
-    const signupBtn = $("signupBtn");
+  const signupBtn = $("signupBtn");
 
-    if (signupBtn) {
-      signupBtn.onclick = signup;
-    }
+  if (signupBtn) {
+    signupBtn.onclick = signup;
+  }
 
-    const logoutBtn = $("logoutBtn");
+  const logoutBtn = $("logoutBtn");
 
-    if (logoutBtn) {
-      logoutBtn.onclick = async () => {
-        await sb.auth.signOut();
-        location.reload();
-      };
-    }
+  if (logoutBtn) {
+    logoutBtn.onclick = async () => {
+      await sb.auth.signOut();
+      location.reload();
+    };
+  }
 
-    const withdrawBtn = $("withdrawBtn");
+  const withdrawBtn = $("withdrawBtn");
 
-    if (withdrawBtn) {
-      withdrawBtn.onclick = withdraw;
-    }
+  if (withdrawBtn) {
+    withdrawBtn.onclick = withdraw;
+  }
 
-    const copyReferralBtn = $("copyReferralBtn");
+  const copyReferralBtn = $("copyReferralBtn");
 
-if (copyReferralBtn) {
+  if (copyReferralBtn) {
 
-  copyReferralBtn.onclick = () => {
+    copyReferralBtn.onclick = function () {
 
-    const linkBox = $("referralLink");
-    const msg = $("referralMsg");
+      const linkBox = $("referralLink");
+      const msg = $("referralMsg");
 
-    if (!linkBox || !linkBox.value) {
-      if (msg) {
-        msg.textContent = "❌ Invite Link မရှိသေးပါ။";
-      }
-      return;
-    }
-
-    linkBox.focus();
-    linkBox.select();
-
-    try {
-      document.execCommand("copy");
-
-      if (msg) {
-        msg.textContent = "✅ Invite Link copied!";
+      if (!linkBox) {
+        alert("Referral Link box မတွေ့ပါ။");
+        return;
       }
 
-    } catch (err) {
-
-      if (msg) {
-        msg.textContent =
-          "📋 Link ကို ဖိထားပြီး Copy လုပ်ပါ။";
+      if (!linkBox.value) {
+        alert("Invite Link မရှိသေးပါ။");
+        return;
       }
-    }
-  };
-}
 
+      linkBox.focus();
+      linkBox.select();
+
+      try {
+
+        const copied = document.execCommand("copy");
+
+        if (copied) {
+          if (msg) {
+            msg.textContent = "✅ Invite Link copied!";
+          }
+        } else {
+          if (msg) {
+            msg.textContent =
+              "📋 Link ကို ဖိထားပြီး Copy လုပ်ပါ။";
+          }
+        }
+
+      } catch (err) {
+
+        console.error("COPY ERROR:", err);
+
+        if (msg) {
+          msg.textContent =
+            "📋 Link ကို ဖိထားပြီး Copy လုပ်ပါ။";
+        }
+      }
+    };
+  }
+
+});
 
 // =========================
 // AUTO LOGIN
