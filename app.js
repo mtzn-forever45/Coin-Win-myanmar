@@ -29,15 +29,51 @@ function setMessage(id, message) {
 // LOGIN
 // =========================
 
-= "❌ User မတွေ့ပါ။";
+async function login() {
+  const msg = $("authMsg");
+
+  if (msg) {
+    msg.textContent = "🔄 Login လုပ်နေပါတယ်...";
+  }
+
+  try {
+    const email = $("email")?.value.trim();
+    const password = $("password")?.value;
+
+    if (!email || !password) {
+      if (msg) {
+        msg.textContent = "❌ Email နဲ့ Password ဖြည့်ပါ။";
+      }
+      return;
+    }
+
+    const { data, error } = await sb.auth.signInWithPassword({
+      email: email,
+      password: password
+    });
+
+    if (error) {
+      console.error("LOGIN ERROR:", error);
+
+      if (msg) {
+        msg.textContent = "❌ " + error.message;
+      }
+      return;
+    }
+
+    if (!data?.user) {
+      if (msg) {
+        msg.textContent = "❌ User မတွေ့ပါ။";
+      }
       return;
     }
 
     currentUser = data.user;
 
-    if (msg) msg.textContent = "✅ Login အောင်မြင်ပါပြီ။";
+    if (msg) {
+      msg.textContent = "✅ Login အောင်မြင်ပါပြီ။";
+    }
 
-    // Login အောင်ပြီးမှ App ဖွင့်
     try {
       await showApp();
     } catch (err) {
@@ -45,7 +81,7 @@ function setMessage(id, message) {
 
       if (msg) {
         msg.textContent =
-          "✅ Login အောင်ပါတယ်၊ ဒါပေမယ့် App ဖွင့်ရာမှာ Error: " +
+          "✅ Login အောင်ပါတယ်၊ App ဖွင့်ရာမှာ Error: " +
           err.message;
       }
     }
