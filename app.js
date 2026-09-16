@@ -46,7 +46,8 @@ async function showApp() {
   await Promise.all([
     loadAdminWithdrawals(),
     loadAdminTasks()
-  ]);
+  await setupReferral();
+]);
 }
 
   async function loadAdminWithdrawals() {
@@ -492,3 +493,47 @@ $("withdrawBtn").onclick = withdraw;
 })();
 
 $("saveReferralBonusBtn").onclick = saveReferralBonus;
+
+async function setupReferral() {
+  const { data, error } = await sb
+    .from("profiles")
+    .select("referral_code")
+    .eq("id", currentUser.id)
+    .single();
+
+  if (error) {
+    $("referralMsg").textContent = error.message;
+    return;
+  }
+
+  let code = data.referral_code;
+
+  if (!code) {
+    code = crypto.randomUUID().replace(/-/g, "").slice(0, 8).toUpperCase();
+
+    const { error: updateError } = await sb
+      .from("profiles")
+      .update({ referral_code: code })
+      .eq("id", currentUser.id);
+
+    if (updateError) {
+      $("referralMsg").textContent = updateError.message;
+      return;
+    }
+  }
+
+  const link =
+    `${location.origin}${location.pathname}?ref=${encodeURIComponent(code)}`;
+
+  $("referralLink").value = link;
+}
+
+$("copyReferralBtn").onclick = async () => {
+  const link = $("referralLink").value;
+
+  if (!link) return;
+
+  await navigator.clipboard.writeText(link);
+
+  $("referralMsg").textContent = "✅ Invite Link copied!";
+};
