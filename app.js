@@ -966,14 +966,14 @@ document.addEventListener("DOMContentLoaded", () => {
   const signupBtn = $("signupBtn");
 
   if (signupBtn && typeof signup === "function") {
-  signupBtn.onclick = signup;
-}
+    signupBtn.onclick = signup;
+  }
 
   const logoutBtn = $("logoutBtn");
 
-if (logoutBtn) {
-  logoutBtn.addEventListener("click", logoutUser);
-}
+  if (logoutBtn) {
+    logoutBtn.addEventListener("click", logoutUser);
+  }
 
   const withdrawBtn = $("withdrawBtn");
 
@@ -981,6 +981,16 @@ if (logoutBtn) {
     withdrawBtn.onclick = withdraw;
   }
 
+  // SAVE REFERRAL BONUS
+  const saveReferralBonusBtn =
+    $("saveReferralBonusBtn");
+
+  if (saveReferralBonusBtn) {
+    saveReferralBonusBtn.onclick =
+      saveReferralBonus;
+  }
+
+  // COPY REFERRAL LINK
   const copyReferralBtn = $("copyReferralBtn");
 
   if (copyReferralBtn) {
@@ -988,7 +998,8 @@ if (logoutBtn) {
     copyReferralBtn.onclick = function () {
 
       const linkBox = $("referralLink");
-      const msg = $("adminReferralMsg");
+      const msg = $("referralMsg");
+
       if (!linkBox) {
         alert("Referral Link box မတွေ့ပါ။");
         return;
@@ -1004,13 +1015,18 @@ if (logoutBtn) {
 
       try {
 
-        const copied = document.execCommand("copy");
+        const copied =
+          document.execCommand("copy");
 
         if (copied) {
+
           if (msg) {
-            msg.textContent = "✅ Invite Link copied!";
+            msg.textContent =
+              "✅ Invite Link copied!";
           }
+
         } else {
+
           if (msg) {
             msg.textContent =
               "📋 Link ကို ဖိထားပြီး Copy လုပ်ပါ။";
@@ -1030,14 +1046,6 @@ if (logoutBtn) {
   }
 
 });
-
-const saveReferralBonusBtn =
-  $("saveReferralBonusBtn");
-
-if (saveReferralBonusBtn) {
-  saveReferralBonusBtn.onclick =
-    saveReferralBonus;
-}
 
 // =========================
 // AUTO LOGIN
