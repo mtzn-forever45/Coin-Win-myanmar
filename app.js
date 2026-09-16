@@ -862,10 +862,14 @@ async function updateWithdrawalStatus(
 // =========================
 
 async function setupReferral() {
+  if (!currentUser) return;
 
   const linkBox = $("referralLink");
 
-  if (!linkBox) return;
+  if (!linkBox) {
+    console.log("Referral link box not found");
+    return;
+  }
 
   const { data, error } = await sb
     .from("profiles")
@@ -874,48 +878,43 @@ async function setupReferral() {
     .single();
 
   if (error) {
-
-    console.log(
-      "Referral setup skipped:",
-      error.message
-    );
-
+    console.error("REFERRAL ERROR:", error);
     return;
   }
 
   let code = data?.referral_code;
 
+  // Generate code if empty
   if (!code) {
-
-    code = crypto
-      .randomUUID()
+    code = crypto.randomUUID()
       .replace(/-/g, "")
       .slice(0, 8)
       .toUpperCase();
 
-    const { error: updateError } =
-      await sb
-        .from("profiles")
-        .update({
-          referral_code: code
-        })
-        .eq("id", currentUser.id);
+    const { error: updateError } = await sb
+      .from("profiles")
+      .update({
+        referral_code: code
+      })
+      .eq("id", currentUser.id);
 
     if (updateError) {
-
-      console.log(
-        "Referral code update skipped:",
-        updateError.message
+      console.error(
+        "REFERRAL CODE UPDATE ERROR:",
+        updateError
       );
-
       return;
     }
   }
 
-  linkBox.value =
+  const referralLink =
     `${location.origin}${location.pathname}?ref=${encodeURIComponent(code)}`;
-}
 
+  linkBox.value = referralLink;
+
+  console.log("REFERRAL CODE:", code);
+  console.log("REFERRAL LINK:", referralLink);
+}
 
 // =========================
 // REFERRAL BONUS
