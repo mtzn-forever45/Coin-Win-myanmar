@@ -981,14 +981,18 @@ document.addEventListener("DOMContentLoaded", () => {
     withdrawBtn.onclick = withdraw;
   }
 
-  // SAVE REFERRAL BONUS
-  const saveReferralBonusBtn =
-    $("saveReferralBonusBtn");
+  // SAVE REFERRAL BONUS TEST
+const saveReferralBonusBtn = $("saveReferralBonusBtn");
 
-  if (saveReferralBonusBtn) {
-    saveReferralBonusBtn.onclick =
-      saveReferralBonus;
-  }
+if (saveReferralBonusBtn) {
+  saveReferralBonusBtn.onclick = async function () {
+
+    alert("🟢 Save Button နှိပ်တာ အလုပ်လုပ်ပါတယ်");
+
+    await saveReferralBonus();
+
+  };
+}
 
   // COPY REFERRAL LINK
   const copyReferralBtn = $("copyReferralBtn");
