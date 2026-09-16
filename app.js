@@ -212,6 +212,28 @@ async function editTask(id, oldTitle, oldReward) {
     loadTasks()
   ]);
 }
+async function deleteTask(id) {
+  const ok = confirm(`Task #${id} ကို ဖျက်မလား?`);
+  if (!ok) return;
+
+  const { error } = await sb
+    .from("tasks")
+    .delete()
+    .eq("id", id);
+
+  if (error) {
+    alert(error.message);
+    return;
+  }
+
+  alert("🗑️ Task deleted!");
+
+  await Promise.all([
+    loadAdminTasks(),
+    loadTasks()
+  ]);
+}
+
 async function loadProfile() {
   const { data, error } = await sb.from("profiles")
     .select("coin_balance")
