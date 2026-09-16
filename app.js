@@ -30,69 +30,13 @@ function setMessage(id, message) {
 // =========================
 
 async function login() {
-  const msg = $("authMsg");
+  const msg = document.getElementById("authMsg");
 
   if (msg) {
-    msg.textContent = "🔄 Login လုပ်နေပါတယ်...";
+    msg.textContent = "🟢 LOGIN BUTTON အလုပ်လုပ်ပါတယ်";
   }
 
-  try {
-    const email = $("email")?.value.trim();
-    const password = $("password")?.value;
-
-    if (!email || !password) {
-      if (msg) {
-        msg.textContent = "❌ Email နဲ့ Password ဖြည့်ပါ။";
-      }
-      return;
-    }
-
-    const { data, error } = await sb.auth.signInWithPassword({
-      email: email,
-      password: password
-    });
-
-    if (error) {
-      console.error("LOGIN ERROR:", error);
-
-      if (msg) {
-        msg.textContent = "❌ " + error.message;
-      }
-      return;
-    }
-
-    if (!data?.user) {
-      if (msg) {
-        msg.textContent = "❌ User မတွေ့ပါ။";
-      }
-      return;
-    }
-
-    currentUser = data.user;
-
-    if (msg) {
-      msg.textContent = "✅ Login အောင်မြင်ပါပြီ။";
-    }
-
-    try {
-      await showApp();
-    } catch (err) {
-      console.error("SHOW APP ERROR:", err);
-
-      if (msg) {
-        msg.textContent =
-          "✅ Login အောင်ပါတယ်၊ App ဖွင့်ရာမှာ Error: " +
-          err.message;
-      }
-    }
-
-  } catch (err) {
-    console.error("LOGIN SYSTEM ERROR:", err);
-
-    if (msg) {
-      msg.textContent = "❌ " + err.message;
-    }
-  }
+  alert("LOGIN FUNCTION အလုပ်လုပ်ပါတယ်");
 }
 
 async function signup() {
