@@ -45,6 +45,33 @@ async function login() {
   }
 }
 
+async function signup() {
+  const email = $("email").value.trim();
+  const password = $("password").value;
+  const msg = $("authMsg");
+
+  msg.textContent = "";
+
+  if (!email || !password) {
+    msg.textContent = "Email နဲ့ Password ဖြည့်ပါ။";
+    return;
+  }
+
+  const { data, error } = await sb.auth.signUp({
+    email,
+    password
+  });
+
+  if (error) {
+    msg.textContent = "❌ " + error.message;
+    return;
+  }
+
+  if (data.user) {
+    msg.textContent =
+      "✅ Register အောင်မြင်ပါတယ်။ Email confirmation လိုရင် Email ကိုစစ်ပါ။";
+  }
+}
   async function loadAdminWithdrawals() {
   const adminCard = $("adminCard");
   const box = $("adminWithdrawals");
@@ -467,14 +494,6 @@ function escapeHtml(s) {
   }[c]));
 }
 
-$("loginBtn").onclick = login;
-$("signupBtn").onclick = signup;
-$("logoutBtn").onclick = async () => {
-  await sb.auth.signOut();
-  location.reload();
-};
-$("withdrawBtn").onclick = withdraw;
-
 (async () => {
   if (SUPABASE_URL.includes("PASTE_") || SUPABASE_KEY.includes("PASTE_")) {
     $("authMsg").textContent = "app.js ထဲမှာ Supabase URL နဲ့ Publishable/Anon key ထည့်ပါ။";
@@ -534,4 +553,42 @@ $("copyReferralBtn").onclick = async () => {
   await navigator.clipboard.writeText(link);
 
   $("referralMsg").textContent = "✅ Invite Link copied!";
+};
+
+const signupBtn = $("signupBtn");
+if (signupBtn) {
+  signupBtn.onclick = signup;
+}
+
+const logoutBtn = $("logoutBtn");
+if (logoutBtn) {
+  logoutBtn.onclick = async () => {
+    await sb.auth.signOut();
+    location.reload();
+  };
+}
+
+const withdrawBtn = $("withdrawBtn");
+if (withdrawBtn) {
+  withdrawBtn.onclick = withdraw;
+}
+
+const saveReferralBonusBtn = $("saveReferralBonusBtn");
+if (saveReferralBonusBtn) {
+  saveReferralBonusBtn.onclick = saveReferralBonus;
+}
+
+const copyReferralBtn = $("copyReferralBtn");
+if (copyReferralBtn) {
+  copyReferralBtn.onclick = async () => {
+    const link = $("referralLink")?.value;
+    if (!link) return;
+
+    try {
+      await navigator.clipboard.writeText(link);
+      $("referralMsg").textContent = "✅ Invite Link copied!";
+    } catch (err) {
+      $("referralMsg").textContent = "Link ကို manually copy လုပ်ပါ။";
+    }
+  };
 };
