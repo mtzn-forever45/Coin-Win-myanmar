@@ -923,14 +923,13 @@ async function setupReferral() {
 
 async function saveReferralBonus() {
 
-  const bonusInput = $("referralBonus");
-  const msg = $("referralMsg");
-
-  const bonus = Number(bonusInput?.value);
+  const bonus = Number($("referralBonus")?.value);
+  const msg = $("adminReferralMsg");
 
   if (!Number.isInteger(bonus) || bonus <= 0) {
     if (msg) {
-      msg.textContent = "Referral Bonus Coins မှန်မှန်ထည့်ပါ။";
+      msg.textContent =
+        "Referral Bonus Coins မှန်မှန်ထည့်ပါ။";
     }
     return;
   }
@@ -939,23 +938,14 @@ async function saveReferralBonus() {
     msg.textContent = "Saving...";
   }
 
-  const { data, error } = await sb
+  const { error } = await sb
     .from("app_settings")
     .update({ value: bonus })
-    .eq("key", "referral_bonus_coins")
-    .select();
+    .eq("key", "referral_bonus_coins");
 
   if (error) {
     if (msg) {
       msg.textContent = "❌ " + error.message;
-    }
-    return;
-  }
-
-  if (!data || data.length === 0) {
-    if (msg) {
-      msg.textContent =
-        "❌ referral_bonus_coins row မတွေ့ပါ။";
     }
     return;
   }
