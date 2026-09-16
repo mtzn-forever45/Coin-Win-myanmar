@@ -129,6 +129,7 @@ async function loadProfile() {
 
 async function loadTasks() {
   const box = $("tasks");
+
   if (!box) return;
 
   box.innerHTML = "";
@@ -144,6 +145,7 @@ async function loadTasks() {
   }
 
   for (const task of data || []) {
+
     const { data: claim } = await sb
       .from("task_claims")
       .select("id")
@@ -154,11 +156,15 @@ async function loadTasks() {
     const div = document.createElement("div");
     div.className = "task";
 
-    // Watch video task
-    if (task.title.toLowerCase().includes("watch video") && !claim) {
+    // 🎥 Watch video
+    if (
+      task.title.toLowerCase().includes("watch video") &&
+      !claim
+    ) {
 
       div.innerHTML = `
         <strong>🎥 ${escapeHtml(task.title)}</strong>
+
         <div class="muted">
           Reward: ${task.reward_coins} Coins
         </div>
@@ -179,17 +185,19 @@ async function loadTasks() {
       const videoMsg = div.querySelector(".videoMsg");
 
       watchBtn.onclick = () => {
+
         videoMsg.textContent =
           "🎬 Video ကြည့်နေပါတယ်...";
 
         watchBtn.disabled = true;
 
-        // Demo video watch time
         setTimeout(() => {
+
           videoMsg.textContent =
             "✅ Video ကြည့်ပြီးပါပြီ။ Claim လုပ်နိုင်ပါပြီ။";
 
           claimBtn.disabled = false;
+
         }, 5000);
       };
 
@@ -197,25 +205,35 @@ async function loadTasks() {
         claimTask(task.id);
       };
 
-    } else if (claim) {
+    }
+
+    // Already claimed
+    else if (claim) {
 
       div.innerHTML = `
         <strong>${escapeHtml(task.title)}</strong>
+
         <div class="muted">
           Reward: ${task.reward_coins} Coins
         </div>
+
         <button disabled>
           ✅ Already Claimed
         </button>
       `;
 
-    } else {
+    }
+
+    // Normal task
+    else {
 
       div.innerHTML = `
         <strong>${escapeHtml(task.title)}</strong>
+
         <div class="muted">
           Reward: ${task.reward_coins} Coins
         </div>
+
         <button>
           Claim Task
         </button>
