@@ -107,6 +107,12 @@ async function showApp() {
 async function loadProfile() {
   if (!currentUser) return;
 
+  const balanceBox = $("balance");
+
+  if (balanceBox) {
+    balanceBox.textContent = "Loading...";
+  }
+
   const { data, error } = await sb
     .from("profiles")
     .select("coin_balance")
@@ -116,17 +122,24 @@ async function loadProfile() {
   if (error) {
     console.error("PROFILE ERROR:", error);
 
-    if ($("balance")) {
-      $("balance").textContent = "Error";
+    if (balanceBox) {
+      balanceBox.textContent = "ERROR";
     }
+
+    alert(
+      "Profile Balance Error:\n" +
+      error.message
+    );
 
     return;
   }
 
-  console.log("CURRENT BALANCE:", data.coin_balance);
+  console.log("CURRENT USER:", currentUser.id);
+  console.log("BALANCE:", data.coin_balance);
 
-  if ($("balance")) {
-    $("balance").textContent = data.coin_balance ?? 0;
+  if (balanceBox) {
+    balanceBox.textContent =
+      data.coin_balance ?? 0;
   }
 }
 
