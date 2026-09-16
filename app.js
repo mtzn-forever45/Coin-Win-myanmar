@@ -970,29 +970,22 @@ document.addEventListener(
   "DOMContentLoaded",
   () => {
 
-    const signupBtn =
-      $("signupBtn");
+    const signupBtn = $("signupBtn");
 
     if (signupBtn) {
       signupBtn.onclick = signup;
     }
 
-    const logoutBtn =
-      $("logoutBtn");
+    const logoutBtn = $("logoutBtn");
 
     if (logoutBtn) {
-
-      logoutBtn.onclick =
-        async () => {
-
-          await sb.auth.signOut();
-
-          location.reload();
-        };
+      logoutBtn.onclick = async () => {
+        await sb.auth.signOut();
+        location.reload();
+      };
     }
 
-    const withdrawBtn =
-      $("withdrawBtn");
+    const withdrawBtn = $("withdrawBtn");
 
     if (withdrawBtn) {
       withdrawBtn.onclick = withdraw;
@@ -1002,42 +995,54 @@ document.addEventListener(
       $("saveReferralBonusBtn");
 
     if (saveReferralBonusBtn) {
-
       saveReferralBonusBtn.onclick =
         saveReferralBonus;
     }
 
-    const copyReferralBtn = $("copyReferralBtn");
+    const copyReferralBtn =
+      $("copyReferralBtn");
 
-if (copyReferralBtn) {
-  const copyReferralBtn = $("copyReferralBtn");
+    if (copyReferralBtn) {
 
-if (copyReferralBtn) {
-  copyReferralBtn.onclick = async () => {
-    const link = $("referralLink")?.value;
+      copyReferralBtn.onclick = async () => {
 
-    if (!link) {
-      setMessage("referralMsg", "❌ Invite Link မရှိသေးပါ။");
-      return;
+        const link =
+          $("referralLink")?.value;
+
+        if (!link) {
+          setMessage(
+            "referralMsg",
+            "❌ Invite Link မရှိသေးပါ။"
+          );
+          return;
+        }
+
+        try {
+
+          await navigator.clipboard.writeText(link);
+
+          setMessage(
+            "referralMsg",
+            "✅ Invite Link copied!"
+          );
+
+        } catch (err) {
+
+          console.error(
+            "COPY ERROR:",
+            err
+          );
+
+          setMessage(
+            "referralMsg",
+            "Link ကို ဖိထားပြီး Copy လုပ်ပါ။"
+          );
+        }
+      };
     }
 
-    try {
-      await navigator.clipboard.writeText(link);
-
-      setMessage(
-        "referralMsg",
-        "✅ Invite Link copied!"
-      );
-    } catch (err) {
-      console.error("COPY ERROR:", err);
-
-      setMessage(
-        "referralMsg",
-        "Link ကို ဖိထားပြီး Copy လုပ်ပါ။"
-      );
-    }
-  };
-}
+  }
+);
 
 
 // =========================
