@@ -29,49 +29,7 @@ function setMessage(id, message) {
 // LOGIN
 // =========================
 
-async function login() {
-  const msg = $("authMsg");
-
-  try {
-    if (msg) msg.textContent = "🔄 Connecting...";
-
-    const email = $("email")?.value.trim();
-    const password = $("password")?.value;
-
-    if (!email || !password) {
-      if (msg) msg.textContent = "❌ Email နဲ့ Password ဖြည့်ပါ။";
-      return;
-    }
-
-    if (!window.supabase) {
-      if (msg) msg.textContent = "❌ Supabase library မတက်လာပါ။";
-      return;
-    }
-
-    if (!SUPABASE_URL || !SUPABASE_KEY) {
-      if (msg) msg.textContent = "❌ Supabase URL/Key မရှိပါ။";
-      return;
-    }
-
-    if (msg) msg.textContent = "🔄 Supabase Login...";
-
-    const { data, error } = await sb.auth.signInWithPassword({
-      email: email,
-      password: password
-    });
-
-    if (error) {
-      console.error("LOGIN ERROR:", error);
-
-      if (msg) {
-        msg.textContent = "❌ " + error.message;
-      }
-
-      return;
-    }
-
-    if (!data?.user) {
-      if (msg) msg.textContent = "❌ User မတွေ့ပါ။";
+= "❌ User မတွေ့ပါ။";
       return;
     }
 
