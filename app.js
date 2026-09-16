@@ -1010,7 +1010,9 @@ document.addEventListener(
     const copyReferralBtn = $("copyReferralBtn");
 
 if (copyReferralBtn) {
-  copyReferralBtn.onclick = async () => {
+  copyReferralBtn.onclick = () => {
+  alert("COPY BUTTON အလုပ်လုပ်ပါတယ်");
+};
     const link = $("referralLink")?.value;
 
     if (!link) {
