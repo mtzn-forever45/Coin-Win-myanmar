@@ -864,12 +864,7 @@ async function updateWithdrawalStatus(
 async function setupReferral() {
   if (!currentUser) return;
 
-  const linkBox = $("referralLink");
-
-  if (!linkBox) {
-    console.log("Referral link box not found");
-    return;
-  }
+  const linkText = $("referralLinkText");
 
   const { data, error } = await sb
     .from("profiles")
@@ -879,12 +874,16 @@ async function setupReferral() {
 
   if (error) {
     console.error("REFERRAL ERROR:", error);
+
+    if (linkText) {
+      linkText.textContent = "❌ Referral link မရပါ";
+    }
+
     return;
   }
 
   let code = data?.referral_code;
 
-  // Generate code if empty
   if (!code) {
     code = crypto.randomUUID()
       .replace(/-/g, "")
@@ -910,7 +909,9 @@ async function setupReferral() {
   const referralLink =
     `${location.origin}${location.pathname}?ref=${encodeURIComponent(code)}`;
 
-  linkBox.value = referralLink;
+  if (linkText) {
+    linkText.textContent = referralLink;
+  }
 
   console.log("REFERRAL CODE:", code);
   console.log("REFERRAL LINK:", referralLink);
