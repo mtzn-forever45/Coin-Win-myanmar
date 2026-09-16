@@ -980,12 +980,9 @@ document.addEventListener("DOMContentLoaded", () => {
 
   const logoutBtn = $("logoutBtn");
 
-  if (logoutBtn) {
-    logoutBtn.onclick = async () => {
-      await sb.auth.signOut();
-      location.reload();
-    };
-  }
+if (logoutBtn) {
+  logoutBtn.addEventListener("click", logoutUser);
+}
 
   const withdrawBtn = $("withdrawBtn");
 
