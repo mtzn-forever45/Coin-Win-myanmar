@@ -317,6 +317,7 @@ async function addTask() {
 
   await loadTasks();
 }
+
 async function saveReferralBonus() {
   const input = $("referralBonus");
   const msg = $("referralMsg");
