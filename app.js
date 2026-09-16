@@ -32,46 +32,74 @@ function setMessage(id, message) {
 async function login() {
   const msg = $("authMsg");
 
-  if (msg) msg.textContent = "Logging in...";
-
   try {
+    if (msg) msg.textContent = "🔄 Connecting...";
+
     const email = $("email")?.value.trim();
     const password = $("password")?.value;
 
     if (!email || !password) {
-      if (msg) msg.textContent = "Email နဲ့ Password ဖြည့်ပါ။";
+      if (msg) msg.textContent = "❌ Email နဲ့ Password ဖြည့်ပါ။";
       return;
     }
 
+    if (!window.supabase) {
+      if (msg) msg.textContent = "❌ Supabase library မတက်လာပါ။";
+      return;
+    }
+
+    if (!SUPABASE_URL || !SUPABASE_KEY) {
+      if (msg) msg.textContent = "❌ Supabase URL/Key မရှိပါ။";
+      return;
+    }
+
+    if (msg) msg.textContent = "🔄 Supabase Login...";
+
     const { data, error } = await sb.auth.signInWithPassword({
-      email,
-      password
+      email: email,
+      password: password
     });
 
     if (error) {
-      if (msg) msg.textContent = "❌ " + error.message;
+      console.error("LOGIN ERROR:", error);
+
+      if (msg) {
+        msg.textContent = "❌ " + error.message;
+      }
+
+      return;
+    }
+
+    if (!data?.user) {
+      if (msg) msg.textContent = "❌ User မတွေ့ပါ။";
       return;
     }
 
     currentUser = data.user;
 
-    if (msg) msg.textContent = "✅ Login successful!";
+    if (msg) msg.textContent = "✅ Login အောင်မြင်ပါပြီ။";
 
-    await showApp();
+    // Login အောင်ပြီးမှ App ဖွင့်
+    try {
+      await showApp();
+    } catch (err) {
+      console.error("SHOW APP ERROR:", err);
+
+      if (msg) {
+        msg.textContent =
+          "✅ Login အောင်ပါတယ်၊ ဒါပေမယ့် App ဖွင့်ရာမှာ Error: " +
+          err.message;
+      }
+    }
 
   } catch (err) {
-    console.error(err);
+    console.error("LOGIN SYSTEM ERROR:", err);
 
     if (msg) {
       msg.textContent = "❌ " + err.message;
     }
   }
 }
-
-
-// =========================
-// REGISTER
-// =========================
 
 async function signup() {
   const email = $("email")?.value.trim();
