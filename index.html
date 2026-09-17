@@ -61,31 +61,33 @@
 
 
       <!-- REFERRAL -->
-   <section class="card">
+<section class="card">
   <h2>👥 Invite Friends</h2>
 
   <p class="muted">
     သူငယ်ချင်းကို Invite လုပ်ပြီး 10 Coins ရယူပါ။
   </p>
 
-  <input
-  id="referralLink"
-  type="text"
-  readonly
-  placeholder="Your referral link"
-  style="
-    display:block;
-    width:100%;
-    box-sizing:border-box;
-    padding:14px;
-    margin:10px 0;
-    background:#ffffff;
-    color:#111111;
-    border:2px solid #999999;
-    border-radius:8px;
-    font-size:14px;
-  "
->
+  <div style="margin:10px 0;">
+    <input
+      id="referralLink"
+      type="text"
+      readonly
+      value=""
+      placeholder="Loading referral link..."
+      style="
+        display:block;
+        width:100%;
+        box-sizing:border-box;
+        padding:14px;
+        background:#ffffff;
+        color:#111111;
+        border:2px solid #999999;
+        border-radius:8px;
+        font-size:14px;
+      "
+    >
+  </div>
 
   <button id="copyReferralBtn" type="button">
     🔗 Copy Invite Link
