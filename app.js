@@ -78,6 +78,50 @@ async function login() {
   }
 }
 
+async function forgotPassword() {
+  const msg = $("authMsg");
+  const email = $("email")?.value.trim();
+
+  if (!email) {
+    if (msg) {
+      msg.textContent = "❌ Password ပြန်ပြောင်းရန် Email ထည့်ပါ။";
+    }
+    return;
+  }
+
+  if (msg) {
+    msg.textContent = "🔄 Password reset link ပို့နေပါတယ်...";
+  }
+
+  try {
+    const { error } = await sb.auth.resetPasswordForEmail(email, {
+      redirectTo: window.location.origin + window.location.pathname
+    });
+
+    if (error) {
+      console.error("FORGOT PASSWORD ERROR:", error);
+
+      if (msg) {
+        msg.textContent = "❌ " + error.message;
+      }
+
+      return;
+    }
+
+    if (msg) {
+      msg.textContent =
+        "✅ Password reset link ကို Email ထဲ ပို့ပြီးပါပြီ။";
+    }
+
+  } catch (err) {
+    console.error(err);
+
+    if (msg) {
+      msg.textContent = "❌ " + err.message;
+    }
+  }
+}
+
 // =========================
 // REGISTER
 // =========================
@@ -1208,6 +1252,15 @@ document.addEventListener("DOMContentLoaded", () => {
 if (signupBtn) {
   signupBtn.onclick = signup;
 }
+
+  // FORGOT PASSWORD
+  const forgotPasswordBtn =
+    $("forgotPasswordBtn");
+
+  if (forgotPasswordBtn) {
+    forgotPasswordBtn.onclick =
+      forgotPassword;
+  }
 
   // LOGOUT
   const logoutBtn = $("logoutBtn");
