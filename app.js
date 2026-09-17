@@ -986,6 +986,14 @@ async function setupReferral() {
   if (!currentUser) return;
 
   const linkBox = $("referralLink");
+  const msg = $("referralMsg");
+
+  if (!linkBox) {
+    console.error("REFERRAL LINK INPUT NOT FOUND");
+    return;
+  }
+
+  linkBox.value = "Loading referral link...";
 
   const { data, error } = await sb
     .from("profiles")
@@ -995,12 +1003,16 @@ async function setupReferral() {
 
   if (error) {
     console.error("REFERRAL ERROR:", error);
+
+    if (msg) {
+      msg.textContent = "❌ Referral error: " + error.message;
+    }
+
     return;
   }
 
   let code = data?.referral_code;
 
-  // User တစ်ယောက်မှာ referral_code မရှိသေးရင် အသစ်ဖန်တီးမယ်
   if (!code) {
     code = crypto.randomUUID()
       .replace(/-/g, "")
@@ -1019,16 +1031,23 @@ async function setupReferral() {
         "REFERRAL CODE UPDATE ERROR:",
         updateError
       );
+
+      if (msg) {
+        msg.textContent =
+          "❌ " + updateError.message;
+      }
+
       return;
     }
   }
 
-  // လက်ရှိ Login ဝင်ထားတဲ့ User ရဲ့ code ကိုပဲ link ထဲထည့်မယ်
   const referralLink =
     `${location.origin}${location.pathname}?ref=${encodeURIComponent(code)}`;
 
-  if (linkBox) {
-    linkBox.value = referralLink;
+  linkBox.value = referralLink;
+
+  if (msg) {
+    msg.textContent = "✅ Your Invite Link is ready!";
   }
 
   console.log("MY REFERRAL CODE:", code);
