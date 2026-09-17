@@ -1031,17 +1031,17 @@ if (copyReferralBtn) {
           "✅ Invite Link copied!";
       }
 
-    } catch (err) {
+      } catch (err) {
 
-      console.error("COPY ERROR:", err);
+    console.error(err);
 
-      if (msg) {
-        msg.textContent =
-          "📋 Link ကို ဖိထားပြီး Copy လုပ်ပါ။";
-      }
-    }
-  };
-}
+    setMessage(
+      "authMsg",
+      "❌ " + err.message
+    );
+  }
+
+})();
 
 // =========================
 // AUTO LOGIN
