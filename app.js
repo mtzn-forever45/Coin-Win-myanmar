@@ -965,6 +965,13 @@ async function logoutUser() {
 
 document.addEventListener("DOMContentLoaded", () => {
 
+  // LOGIN
+  const loginBtn = $("loginBtn");
+
+  if (loginBtn) {
+    loginBtn.onclick = login;
+  }
+
   const signupBtn = $("signupBtn");
 
   if (signupBtn && typeof signup === "function") {
