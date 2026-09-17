@@ -181,6 +181,31 @@ async function showApp() {
   ]);
 }
 
+async function applyPendingReferral() {
+  if (!currentUser) return;
+
+  const ref = localStorage.getItem("pending_referral");
+
+  if (!ref) return;
+
+  try {
+    const { data, error } = await sb.rpc("apply_referral", {
+      p_referral_code: ref
+    });
+
+    if (error) {
+      console.error("REFERRAL APPLY ERROR:", error);
+      return;
+    }
+
+    console.log("REFERRAL BONUS:", data);
+
+    localStorage.removeItem("pending_referral");
+
+  } catch (err) {
+    console.error("REFERRAL ERROR:", err);
+  }
+}
 
 // =========================
 // PROFILE
