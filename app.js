@@ -78,6 +78,81 @@ async function login() {
   }
 }
 
+// =========================
+// REGISTER
+// =========================
+
+async function signup() {
+  const msg = $("authMsg");
+
+  const email = $("email")?.value.trim();
+  const password = $("password")?.value;
+
+  if (!email || !password) {
+    if (msg) {
+      msg.textContent =
+        "❌ Email နဲ့ Password ဖြည့်ပါ။";
+    }
+    return;
+  }
+
+  if (password.length < 6) {
+    if (msg) {
+      msg.textContent =
+        "❌ Password အနည်းဆုံး 6 လုံးထည့်ပါ။";
+    }
+    return;
+  }
+
+  if (msg) {
+    msg.textContent =
+      "🔄 Register လုပ်နေပါတယ်...";
+  }
+
+  try {
+    const { data, error } =
+      await sb.auth.signUp({
+        email,
+        password
+      });
+
+    if (error) {
+      console.error("SIGNUP ERROR:", error);
+
+      if (msg) {
+        msg.textContent =
+          "❌ " + error.message;
+      }
+
+      return;
+    }
+
+    if (data.session) {
+      currentUser = data.user;
+
+      if (msg) {
+        msg.textContent =
+          "✅ Register အောင်မြင်ပါပြီ။";
+      }
+
+      await showApp();
+
+    } else {
+      if (msg) {
+        msg.textContent =
+          "✅ Register အောင်မြင်ပါပြီ။ Email ကို Confirm လုပ်ပြီး Login ဝင်ပါ။";
+      }
+    }
+
+  } catch (err) {
+    console.error("SIGNUP ERROR:", err);
+
+    if (msg) {
+      msg.textContent =
+        "❌ " + err.message;
+    }
+  }
+}
 
 // =========================
 // SHOW APP
