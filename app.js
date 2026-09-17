@@ -864,6 +864,7 @@ async function updateWithdrawalStatus(
 async function setupReferral() {
   if (!currentUser) return;
 
+  const linkBox = $("referralLink");
   const linkText = $("referralLinkText");
 
   const { data, error } = await sb
@@ -874,11 +875,6 @@ async function setupReferral() {
 
   if (error) {
     console.error("REFERRAL ERROR:", error);
-
-    if (linkText) {
-      linkText.textContent = "❌ Referral link မရပါ";
-    }
-
     return;
   }
 
@@ -909,6 +905,12 @@ async function setupReferral() {
   const referralLink =
     `${location.origin}${location.pathname}?ref=${encodeURIComponent(code)}`;
 
+  // Referral link box ထဲထည့်
+  if (linkBox) {
+    linkBox.value = referralLink;
+  }
+
+  // Text box ရှိရင်လည်း ထည့်
   if (linkText) {
     linkText.textContent = referralLink;
   }
