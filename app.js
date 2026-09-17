@@ -179,7 +179,8 @@ async function showApp() {
   if (app) app.hidden = false;
 
   if ($("userEmail")) {
-    $("userEmail").textContent = currentUser?.email || "";
+    $("userEmail").textContent =
+      currentUser?.email || "";
   }
 
   await applyPendingReferral();
@@ -195,29 +196,45 @@ async function showApp() {
   ]);
 }
 
+
 async function applyPendingReferral() {
   if (!currentUser) return;
 
-  const ref = localStorage.getItem("pending_referral");
+  const ref =
+    localStorage.getItem("pending_referral");
 
   if (!ref) return;
 
   try {
-    const { data, error } = await sb.rpc("apply_referral", {
-      p_referral_code: ref
-    });
+
+    const { data, error } =
+      await sb.rpc("apply_referral", {
+        p_referral_code: ref
+      });
 
     if (error) {
-      console.error("REFERRAL APPLY ERROR:", error);
+      console.error(
+        "REFERRAL APPLY ERROR:",
+        error
+      );
       return;
     }
 
-    console.log("REFERRAL BONUS:", data);
+    console.log(
+      "REFERRAL BONUS:",
+      data
+    );
 
-    localStorage.removeItem("pending_referral");
+    localStorage.removeItem(
+      "pending_referral"
+    );
 
   } catch (err) {
-    console.error("REFERRAL ERROR:", err);
+
+    console.error(
+      "REFERRAL ERROR:",
+      err
+    );
   }
 }
 
@@ -855,7 +872,7 @@ async function loadAdminWithdrawals() {
   }
 
   adminCard.hidden = false;
-
+await loadAdminSettings();
   const { data, error } = await sb
     .from("withdrawals")
     .select(
@@ -1094,11 +1111,89 @@ async function logoutUser() {
   location.reload();
 }
 
+async function loadAdminSettings() {
+  const input = $("adminReferralBonus");
+  const msg = $("adminSettingsMsg");
+
+  if (!input) return;
+
+  const { data, error } = await sb
+    .from("app_settings")
+    .select("value")
+    .eq("key", "referral_bonus_coins")
+    .single();
+
+  if (error) {
+    console.error("ADMIN SETTINGS LOAD ERROR:", error);
+
+    if (msg) {
+      msg.textContent = "❌ " + error.message;
+    }
+
+    return;
+  }
+
+  input.value = data?.value ?? 10;
+}
+
+
+async function saveAdminSettings() {
+  const input = $("adminReferralBonus");
+  const msg = $("adminSettingsMsg");
+
+  if (!input) return;
+
+  const value = Number(input.value);
+
+  if (!Number.isInteger(value) || value < 0) {
+    if (msg) {
+      msg.textContent =
+        "❌ Referral Bonus ကို 0 သို့မဟုတ် အထက်ထည့်ပါ။";
+    }
+    return;
+  }
+
+  if (msg) {
+    msg.textContent = "🔄 Saving...";
+  }
+
+  const { error } = await sb
+    .from("app_settings")
+    .update({
+      value: value
+    })
+    .eq("key", "referral_bonus_coins");
+
+  if (error) {
+    console.error("ADMIN SETTINGS SAVE ERROR:", error);
+
+    if (msg) {
+      msg.textContent = "❌ " + error.message;
+    }
+
+    return;
+  }
+
+  if (msg) {
+    msg.textContent =
+      "✅ Referral Bonus " + value + " Coins အဖြစ်သိမ်းပြီးပါပြီ။";
+  }
+}
+
 // =========================
 // EVENTS
 // =========================
 
 document.addEventListener("DOMContentLoaded", () => {
+
+  // ADMIN SETTINGS
+  const adminSaveSettingsBtn =
+    $("adminSaveSettingsBtn");
+
+  if (adminSaveSettingsBtn) {
+    adminSaveSettingsBtn.onclick =
+      saveAdminSettings;
+  }
 
   // LOGIN
   const loginBtn = $("loginBtn");
