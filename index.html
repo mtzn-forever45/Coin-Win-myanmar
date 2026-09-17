@@ -61,28 +61,29 @@
 
 
       <!-- REFERRAL -->
-    <section class="card">
+   <section class="card">
   <h2>👥 Invite Friends</h2>
 
   <p class="muted">
     သူငယ်ချင်းကို Invite လုပ်ပြီး 10 Coins ရယူပါ။
   </p>
 
-  <div
-    id="referralLinkText"
+  <input
+    id="referralLink"
+    type="text"
+    readonly
+    placeholder="Your referral link"
     style="
-      display:block;
+      width:100%;
+      box-sizing:border-box;
       padding:12px;
-      margin:10px 0;
       background:#ffffff;
       color:#111111;
       border:1px solid #ccc;
       border-radius:8px;
-      word-break:break-all;
-      min-height:20px;
-    ">
-    Loading referral link...
-  </div>
+      font-size:14px;
+    "
+  >
 
   <button id="copyReferralBtn" type="button">
     🔗 Copy Invite Link
@@ -214,7 +215,7 @@
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 
   <!-- APP JS -->
-  <script src="app.js?v=11"></script>
+  <script src="app.js?v=12"></script>
 
 </body>
 </html>
