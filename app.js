@@ -865,7 +865,6 @@ async function setupReferral() {
   if (!currentUser) return;
 
   const linkBox = $("referralLink");
-  const linkText = $("referralLinkText");
 
   const { data, error } = await sb
     .from("profiles")
@@ -888,16 +887,11 @@ async function setupReferral() {
 
     const { error: updateError } = await sb
       .from("profiles")
-      .update({
-        referral_code: code
-      })
+      .update({ referral_code: code })
       .eq("id", currentUser.id);
 
     if (updateError) {
-      console.error(
-        "REFERRAL CODE UPDATE ERROR:",
-        updateError
-      );
+      console.error("REFERRAL CODE UPDATE ERROR:", updateError);
       return;
     }
   }
@@ -905,14 +899,8 @@ async function setupReferral() {
   const referralLink =
     `${location.origin}${location.pathname}?ref=${encodeURIComponent(code)}`;
 
-  // Referral link box ထဲထည့်
   if (linkBox) {
     linkBox.value = referralLink;
-  }
-
-  // Text box ရှိရင်လည်း ထည့်
-  if (linkText) {
-    linkText.textContent = referralLink;
   }
 
   console.log("REFERRAL CODE:", code);
