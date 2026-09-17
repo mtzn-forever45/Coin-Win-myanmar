@@ -184,11 +184,25 @@ async function loadTasks() {
     const div = document.createElement("div");
     div.className = "task";
 
-    // 🎥 Watch video
-    if (
-      task.title.toLowerCase().includes("watch video") &&
-      !claim
-    ) {
+    // Already Claimed
+    if (claim) {
+
+      div.innerHTML = `
+        <strong>${escapeHtml(task.title)}</strong>
+
+        <div class="muted">
+          Reward: ${task.reward_coins} Coins
+        </div>
+
+        <button disabled>
+          ✅ Already Claimed
+        </button>
+      `;
+
+    }
+
+    // Video Task
+    else if (task.video_url) {
 
       div.innerHTML = `
         <strong>🎥 ${escapeHtml(task.title)}</strong>
@@ -208,14 +222,24 @@ async function loadTasks() {
         <p class="videoMsg muted"></p>
       `;
 
-      const watchBtn = div.querySelector(".watchBtn");
-      const claimBtn = div.querySelector(".claimBtn");
-      const videoMsg = div.querySelector(".videoMsg");
+      const watchBtn =
+        div.querySelector(".watchBtn");
+
+      const claimBtn =
+        div.querySelector(".claimBtn");
+
+      const videoMsg =
+        div.querySelector(".videoMsg");
 
       watchBtn.onclick = () => {
 
+        window.open(
+          task.video_url,
+          "_blank"
+        );
+
         videoMsg.textContent =
-          "🎬 Video ကြည့်နေပါတယ်...";
+          "🎬 Video ဖွင့်ပြီးပါပြီ။ 5 စက္ကန့်စောင့်ပါ...";
 
         watchBtn.disabled = true;
 
@@ -235,24 +259,7 @@ async function loadTasks() {
 
     }
 
-    // Already claimed
-    else if (claim) {
-
-      div.innerHTML = `
-        <strong>${escapeHtml(task.title)}</strong>
-
-        <div class="muted">
-          Reward: ${task.reward_coins} Coins
-        </div>
-
-        <button disabled>
-          ✅ Already Claimed
-        </button>
-      `;
-
-    }
-
-    // Normal task
+    // Normal Task
     else {
 
       div.innerHTML = `
@@ -263,7 +270,7 @@ async function loadTasks() {
         </div>
 
         <button>
-          Claim Task
+          🎁 Claim Task
         </button>
       `;
 
