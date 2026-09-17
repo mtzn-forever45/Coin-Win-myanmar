@@ -170,6 +170,8 @@ async function showApp() {
     $("userEmail").textContent = currentUser?.email || "";
   }
 
+  await applyPendingReferral();
+
   await Promise.all([
     loadProfile(),
     loadTasks(),
