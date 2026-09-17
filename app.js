@@ -154,6 +154,18 @@ async function signup() {
   }
 }
 
+(function saveReferralFromUrl() {
+  const params = new URLSearchParams(location.search);
+  const ref = params.get("ref");
+
+  if (ref) {
+    localStorage.setItem(
+      "pending_referral",
+      ref.trim().toUpperCase()
+    );
+  }
+})();
+
 // =========================
 // SHOW APP
 // =========================
