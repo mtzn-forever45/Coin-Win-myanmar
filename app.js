@@ -1262,6 +1262,154 @@ if (signupBtn) {
       forgotPassword;
   }
 
+// UPDATE PASSWORD
+  const updatePasswordBtn =
+    $("updatePasswordBtn");
+
+  if (updatePasswordBtn) {
+    updatePasswordBtn.onclick =
+      updatePassword;
+  }
+
+// =========================
+// UPDATE PASSWORD
+// =========================
+
+async function updatePassword() {
+  const newPassword =
+    $("newPassword")?.value || "";
+
+  const confirmPassword =
+    $("confirmPassword")?.value || "";
+
+  const msg =
+    $("resetPasswordMsg");
+
+  if (!newPassword || !confirmPassword) {
+    if (msg) {
+      msg.textContent =
+        "❌ Password အသစ် နှစ်နေရာလုံး ဖြည့်ပါ။";
+    }
+    return;
+  }
+
+  if (newPassword.length < 6) {
+    if (msg) {
+      msg.textContent =
+        "❌ Password အနည်းဆုံး 6 လုံးထည့်ပါ။";
+    }
+    return;
+  }
+
+  if (newPassword !== confirmPassword) {
+    if (msg) {
+      msg.textContent =
+        "❌ Password နှစ်ခု မတူပါ။";
+    }
+    return;
+  }
+
+  if (msg) {
+    msg.textContent =
+      "🔄 Password ပြောင်းနေပါတယ်...";
+  }
+
+  try {
+    const { error } =
+      await sb.auth.updateUser({
+        password: newPassword
+      });
+
+    if (error) {
+      console.error(
+        "UPDATE PASSWORD ERROR:",
+        error
+      );
+
+      if (msg) {
+        msg.textContent =
+          "❌ " + error.message;
+      }
+
+      return;
+    }
+
+    if (msg) {
+      msg.textContent =
+        "✅ Password ပြောင်းပြီးပါပြီ။ Login ပြန်ဝင်နိုင်ပါပြီ။";
+    }
+
+    $("newPassword").value = "";
+    $("confirmPassword").value = "";
+
+    setTimeout(async () => {
+      await sb.auth.signOut();
+
+      const resetCard =
+        $("resetPasswordCard");
+
+      const authCard =
+        $("authCard");
+
+      if (resetCard) {
+        resetCard.hidden = true;
+      }
+
+      if (authCard) {
+        authCard.hidden = false;
+      }
+
+      if ($("authMsg")) {
+        $("authMsg").textContent =
+          "✅ Password အသစ်နဲ့ Login ဝင်ပါ။";
+      }
+    }, 1500);
+
+  } catch (err) {
+    console.error(
+      "UPDATE PASSWORD ERROR:",
+      err
+    );
+
+    if (msg) {
+      msg.textContent =
+        "❌ " + err.message;
+    }
+  }
+}
+
+// =========================
+// PASSWORD RECOVERY
+// =========================
+
+sb.auth.onAuthStateChange((event) => {
+
+  if (event === "PASSWORD_RECOVERY") {
+
+    const authCard =
+      $("authCard");
+
+    const app =
+      $("app");
+
+    const resetCard =
+      $("resetPasswordCard");
+
+    if (authCard) {
+      authCard.hidden = true;
+    }
+
+    if (app) {
+      app.hidden = true;
+    }
+
+    if (resetCard) {
+      resetCard.hidden = false;
+    }
+  }
+
+});
+
   // LOGOUT
   const logoutBtn = $("logoutBtn");
 
@@ -1361,8 +1509,7 @@ if (signupBtn) {
   }
 
 });
-
-
+  
 // =========================
 // AUTO LOGIN
 // =========================
