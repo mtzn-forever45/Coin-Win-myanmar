@@ -164,7 +164,7 @@ async function loadTasks() {
 
   const { data, error } = await sb
     .from("tasks")
-    .select("id,title,reward_coins")
+    .select("id,title,reward_coins,video_url")
     .order("id");
 
   if (error) {
