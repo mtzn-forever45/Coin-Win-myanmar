@@ -1000,6 +1000,7 @@ async function setupReferral() {
 
   let code = data?.referral_code;
 
+  // User တစ်ယောက်မှာ referral_code မရှိသေးရင် အသစ်ဖန်တီးမယ်
   if (!code) {
     code = crypto.randomUUID()
       .replace(/-/g, "")
@@ -1008,15 +1009,21 @@ async function setupReferral() {
 
     const { error: updateError } = await sb
       .from("profiles")
-      .update({ referral_code: code })
+      .update({
+        referral_code: code
+      })
       .eq("id", currentUser.id);
 
     if (updateError) {
-      console.error("REFERRAL CODE UPDATE ERROR:", updateError);
+      console.error(
+        "REFERRAL CODE UPDATE ERROR:",
+        updateError
+      );
       return;
     }
   }
 
+  // လက်ရှိ Login ဝင်ထားတဲ့ User ရဲ့ code ကိုပဲ link ထဲထည့်မယ်
   const referralLink =
     `${location.origin}${location.pathname}?ref=${encodeURIComponent(code)}`;
 
@@ -1024,8 +1031,8 @@ async function setupReferral() {
     linkBox.value = referralLink;
   }
 
-  console.log("REFERRAL CODE:", code);
-  console.log("REFERRAL LINK:", referralLink);
+  console.log("MY REFERRAL CODE:", code);
+  console.log("MY REFERRAL LINK:", referralLink);
 }
 
 // =========================
