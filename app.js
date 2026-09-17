@@ -1045,9 +1045,11 @@ document.addEventListener("DOMContentLoaded", () => {
   // REGISTER
   const signupBtn = $("signupBtn");
 
-  if (signupBtn && typeof signup === "function") {
-    signupBtn.onclick = signup;
-  }
+if (signupBtn) {
+  signupBtn.onclick = function () {
+    signup();
+  };
+}
 
   // LOGOUT
   const logoutBtn = $("logoutBtn");
