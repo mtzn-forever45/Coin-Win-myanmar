@@ -997,59 +997,49 @@ if (saveReferralBonusBtn) {
   // COPY REFERRAL LINK
   const copyReferralBtn = $("copyReferralBtn");
 
-  if (copyReferralBtn) {
+if (copyReferralBtn) {
 
-    copyReferralBtn.onclick = function () {
+  copyReferralBtn.onclick = async function () {
 
-      const linkBox = $("referralLink");
-      const msg = $("referralMsg");
+    const linkBox = $("referralLink");
+    const linkText = $("referralLinkText");
+    const msg = $("referralMsg");
 
-      if (!linkBox) {
-        alert("Referral Link box မတွေ့ပါ။");
-        return;
+    let referralLink = "";
+
+    if (linkBox && linkBox.value) {
+      referralLink = linkBox.value;
+    } else if (linkText && linkText.textContent) {
+      referralLink = linkText.textContent.trim();
+    }
+
+    if (!referralLink ||
+        referralLink === "Loading referral link...") {
+
+      alert("Referral Link မတွေ့ပါ။");
+      return;
+    }
+
+    try {
+
+      await navigator.clipboard.writeText(referralLink);
+
+      if (msg) {
+        msg.textContent =
+          "✅ Invite Link copied!";
       }
 
-      if (!linkBox.value) {
-        alert("Invite Link မရှိသေးပါ။");
-        return;
+    } catch (err) {
+
+      console.error("COPY ERROR:", err);
+
+      if (msg) {
+        msg.textContent =
+          "📋 Link ကို ဖိထားပြီး Copy လုပ်ပါ။";
       }
-
-      linkBox.focus();
-      linkBox.select();
-
-      try {
-
-        const copied =
-          document.execCommand("copy");
-
-        if (copied) {
-
-          if (msg) {
-            msg.textContent =
-              "✅ Invite Link copied!";
-          }
-
-        } else {
-
-          if (msg) {
-            msg.textContent =
-              "📋 Link ကို ဖိထားပြီး Copy လုပ်ပါ။";
-          }
-        }
-
-      } catch (err) {
-
-        console.error("COPY ERROR:", err);
-
-        if (msg) {
-          msg.textContent =
-            "📋 Link ကို ဖိထားပြီး Copy လုပ်ပါ။";
-        }
-      }
-    };
-  }
-
-});
+    }
+  };
+}
 
 // =========================
 // AUTO LOGIN
