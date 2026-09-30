@@ -1,6 +1,6 @@
 // ============================================================
 // Coin Win Myanmar - Supabase Frontend
-// Revised / Clean Version
+// Clean Version - Admin Settings Only
 // ============================================================
 
 const SUPABASE_URL =
@@ -17,7 +17,8 @@ const sb = supabase.createClient(
 let currentUser = null;
 let currentIsAdmin = false;
 
-const $ = (id) => document.getElementById(id);
+const $ = (id) =>
+  document.getElementById(id);
 
 
 // ============================================================
@@ -40,23 +41,39 @@ function escapeHtml(value) {
 
 function setMessage(id, message) {
   const el = $(id);
-  if (el) el.textContent = message || "";
+
+  if (el) {
+    el.textContent =
+      message || "";
+  }
 }
 
 function setHidden(id, hidden) {
   const el = $(id);
-  if (el) el.hidden = hidden;
+
+  if (el) {
+    el.hidden = hidden;
+  }
 }
 
 function isValidPositiveInteger(value) {
-  return Number.isInteger(value) && value > 0;
+  return (
+    Number.isInteger(value) &&
+    value > 0
+  );
 }
 
 function formatDate(value) {
   if (!value) return "";
-  const date = new Date(value);
 
-  if (Number.isNaN(date.getTime())) {
+  const date =
+    new Date(value);
+
+  if (
+    Number.isNaN(
+      date.getTime()
+    )
+  ) {
     return "";
   }
 
@@ -65,20 +82,24 @@ function formatDate(value) {
 
 
 // ============================================================
-// AUTH - LOGIN
+// LOGIN
 // ============================================================
 
 async function login() {
-  const msg = $("authMsg");
 
-  const email = $("email")?.value.trim();
-  const password = $("password")?.value || "";
+  const email =
+    $("email")?.value.trim();
+
+  const password =
+    $("password")?.value || "";
 
   if (!email || !password) {
+
     setMessage(
       "authMsg",
       "❌ Email နဲ့ Password ဖြည့်ပါ။"
     );
+
     return;
   }
 
@@ -88,76 +109,22 @@ async function login() {
   );
 
   try {
-    const { data, error } =
+
+    const {
+      data,
+      error
+    } =
       await sb.auth.signInWithPassword({
         email,
         password
       });
 
     if (error) {
-      console.error("LOGIN ERROR:", error);
-      setMessage("authMsg", "❌ " + error.message);
-      return;
-    }
 
-    currentUser = data.user;
-
-    setMessage(
-      "authMsg",
-      "✅ Login အောင်မြင်ပါပြီ။"
-    );
-
-    await showApp();
-
-  } catch (err) {
-    console.error("LOGIN ERROR:", err);
-
-    setMessage(
-      "authMsg",
-      "❌ " + (err?.message || "Login failed.")
-    );
-  }
-}
-
-
-// ============================================================
-// AUTH - REGISTER
-// ============================================================
-
-async function signup() {
-  const email = $("email")?.value.trim();
-  const password = $("password")?.value || "";
-
-  if (!email || !password) {
-    setMessage(
-      "authMsg",
-      "❌ Email နဲ့ Password ဖြည့်ပါ။"
-    );
-    return;
-  }
-
-  if (password.length < 6) {
-    setMessage(
-      "authMsg",
-      "❌ Password အနည်းဆုံး 6 လုံးထည့်ပါ။"
-    );
-    return;
-  }
-
-  setMessage(
-    "authMsg",
-    "🔄 Register လုပ်နေပါတယ်..."
-  );
-
-  try {
-    const { data, error } =
-      await sb.auth.signUp({
-        email,
-        password
-      });
-
-    if (error) {
-      console.error("SIGNUP ERROR:", error);
+      console.error(
+        "LOGIN ERROR:",
+        error
+      );
 
       setMessage(
         "authMsg",
@@ -167,8 +134,105 @@ async function signup() {
       return;
     }
 
-    if (data.session && data.user) {
-      currentUser = data.user;
+    currentUser =
+      data.user;
+
+    setMessage(
+      "authMsg",
+      "✅ Login အောင်မြင်ပါပြီ။"
+    );
+
+    await showApp();
+
+  } catch (err) {
+
+    console.error(
+      "LOGIN ERROR:",
+      err
+    );
+
+    setMessage(
+      "authMsg",
+      "❌ " +
+      (
+        err?.message ||
+        "Login failed."
+      )
+    );
+  }
+}
+
+
+// ============================================================
+// REGISTER
+// ============================================================
+
+async function signup() {
+
+  const email =
+    $("email")?.value.trim();
+
+  const password =
+    $("password")?.value || "";
+
+  if (!email || !password) {
+
+    setMessage(
+      "authMsg",
+      "❌ Email နဲ့ Password ဖြည့်ပါ။"
+    );
+
+    return;
+  }
+
+  if (password.length < 6) {
+
+    setMessage(
+      "authMsg",
+      "❌ Password အနည်းဆုံး 6 လုံးထည့်ပါ။"
+    );
+
+    return;
+  }
+
+  setMessage(
+    "authMsg",
+    "🔄 Register လုပ်နေပါတယ်..."
+  );
+
+  try {
+
+    const {
+      data,
+      error
+    } =
+      await sb.auth.signUp({
+        email,
+        password
+      });
+
+    if (error) {
+
+      console.error(
+        "SIGNUP ERROR:",
+        error
+      );
+
+      setMessage(
+        "authMsg",
+        "❌ " + error.message
+      );
+
+      return;
+    }
+
+    if (
+      data.session &&
+      data.user
+    ) {
+
+      currentUser =
+        data.user;
 
       setMessage(
         "authMsg",
@@ -178,6 +242,7 @@ async function signup() {
       await showApp();
 
     } else {
+
       setMessage(
         "authMsg",
         "✅ Register အောင်မြင်ပါပြီ။ Email ကို Confirm လုပ်ပြီး Login ဝင်ပါ။"
@@ -185,11 +250,19 @@ async function signup() {
     }
 
   } catch (err) {
-    console.error("SIGNUP ERROR:", err);
+
+    console.error(
+      "SIGNUP ERROR:",
+      err
+    );
 
     setMessage(
       "authMsg",
-      "❌ " + (err?.message || "Registration failed.")
+      "❌ " +
+      (
+        err?.message ||
+        "Registration failed."
+      )
     );
   }
 }
@@ -200,13 +273,17 @@ async function signup() {
 // ============================================================
 
 async function forgotPassword() {
-  const email = $("email")?.value.trim();
+
+  const email =
+    $("email")?.value.trim();
 
   if (!email) {
+
     setMessage(
       "authMsg",
       "❌ Password ပြန်ပြောင်းရန် Email ထည့်ပါ။"
     );
+
     return;
   }
 
@@ -216,11 +293,14 @@ async function forgotPassword() {
   );
 
   try {
+
     const redirectTo =
       window.location.origin +
       window.location.pathname;
 
-    const { error } =
+    const {
+      error
+    } =
       await sb.auth.resetPasswordForEmail(
         email,
         {
@@ -229,6 +309,7 @@ async function forgotPassword() {
       );
 
     if (error) {
+
       console.error(
         "FORGOT PASSWORD ERROR:",
         error
@@ -248,6 +329,7 @@ async function forgotPassword() {
     );
 
   } catch (err) {
+
     console.error(
       "FORGOT PASSWORD ERROR:",
       err
@@ -255,44 +337,63 @@ async function forgotPassword() {
 
     setMessage(
       "authMsg",
-      "❌ " + (err?.message || "Password reset failed.")
+      "❌ " +
+      (
+        err?.message ||
+        "Password reset failed."
+      )
     );
   }
 }
 
 
 // ============================================================
-// PASSWORD UPDATE
+// UPDATE PASSWORD
 // ============================================================
 
 async function updatePassword() {
+
   const newPassword =
     $("newPassword")?.value || "";
 
   const confirmPassword =
     $("confirmPassword")?.value || "";
 
-  if (!newPassword || !confirmPassword) {
+  if (
+    !newPassword ||
+    !confirmPassword
+  ) {
+
     setMessage(
       "resetPasswordMsg",
       "❌ Password အသစ် နှစ်နေရာလုံး ဖြည့်ပါ။"
     );
+
     return;
   }
 
-  if (newPassword.length < 6) {
+  if (
+    newPassword.length < 6
+  ) {
+
     setMessage(
       "resetPasswordMsg",
       "❌ Password အနည်းဆုံး 6 လုံးထည့်ပါ။"
     );
+
     return;
   }
 
-  if (newPassword !== confirmPassword) {
+  if (
+    newPassword !==
+    confirmPassword
+  ) {
+
     setMessage(
       "resetPasswordMsg",
       "❌ Password နှစ်ခု မတူပါ။"
     );
+
     return;
   }
 
@@ -302,16 +403,16 @@ async function updatePassword() {
   );
 
   try {
-    const { error } =
+
+    const {
+      error
+    } =
       await sb.auth.updateUser({
-        password: newPassword
+        password:
+          newPassword
       });
 
     if (error) {
-      console.error(
-        "UPDATE PASSWORD ERROR:",
-        error
-      );
 
       setMessage(
         "resetPasswordMsg",
@@ -326,43 +427,40 @@ async function updatePassword() {
       "✅ Password ပြောင်းပြီးပါပြီ။"
     );
 
-    if ($("newPassword")) {
-      $("newPassword").value = "";
-    }
+    setTimeout(
+      async () => {
 
-    if ($("confirmPassword")) {
-      $("confirmPassword").value = "";
-    }
+        await sb.auth.signOut();
 
-    setTimeout(async () => {
-      await sb.auth.signOut();
+        currentUser = null;
+        currentIsAdmin = false;
 
-      currentUser = null;
-      currentIsAdmin = false;
+        setHidden(
+          "resetPasswordCard",
+          true
+        );
 
-      setHidden(
-        "resetPasswordCard",
-        true
-      );
+        setHidden(
+          "authCard",
+          false
+        );
 
-      setHidden(
-        "authCard",
-        false
-      );
+        setHidden(
+          "app",
+          true
+        );
 
-      setHidden(
-        "app",
-        true
-      );
+        setMessage(
+          "authMsg",
+          "✅ Password အသစ်နဲ့ Login ဝင်ပါ။"
+        );
 
-      setMessage(
-        "authMsg",
-        "✅ Password အသစ်နဲ့ Login ဝင်ပါ။"
-      );
-
-    }, 1200);
+      },
+      1200
+    );
 
   } catch (err) {
+
     console.error(
       "UPDATE PASSWORD ERROR:",
       err
@@ -370,18 +468,24 @@ async function updatePassword() {
 
     setMessage(
       "resetPasswordMsg",
-      "❌ " + (err?.message || "Password update failed.")
+      "❌ " +
+      (
+        err?.message ||
+        "Password update failed."
+      )
     );
   }
 }
 
 
 // ============================================================
-// REFERRAL FROM URL
+// SAVE REFERRAL FROM URL
 // ============================================================
 
 (function saveReferralFromUrl() {
+
   try {
+
     const params =
       new URLSearchParams(
         window.location.search
@@ -391,6 +495,7 @@ async function updatePassword() {
       params.get("ref");
 
     if (ref) {
+
       localStorage.setItem(
         "pending_referral",
         ref.trim().toUpperCase()
@@ -398,11 +503,13 @@ async function updatePassword() {
     }
 
   } catch (err) {
+
     console.error(
       "REFERRAL URL ERROR:",
       err
     );
   }
+
 })();
 
 
@@ -411,13 +518,20 @@ async function updatePassword() {
 // ============================================================
 
 async function checkAdmin() {
+
   if (!currentUser) {
+
     currentIsAdmin = false;
+
     return false;
   }
 
   try {
-    const { data, error } =
+
+    const {
+      data,
+      error
+    } =
       await sb
         .from("admins")
         .select("user_id")
@@ -428,26 +542,31 @@ async function checkAdmin() {
         .maybeSingle();
 
     if (error) {
+
       console.error(
         "ADMIN CHECK ERROR:",
         error
       );
 
       currentIsAdmin = false;
+
       return false;
     }
 
-    currentIsAdmin = !!data;
+    currentIsAdmin =
+      !!data;
 
     return currentIsAdmin;
 
   } catch (err) {
+
     console.error(
       "ADMIN CHECK ERROR:",
       err
     );
 
     currentIsAdmin = false;
+
     return false;
   }
 }
@@ -458,13 +577,28 @@ async function checkAdmin() {
 // ============================================================
 
 async function showApp() {
-  if (!currentUser) return;
 
-  setHidden("authCard", true);
-  setHidden("resetPasswordCard", true);
-  setHidden("app", false);
+  if (!currentUser) {
+    return;
+  }
+
+  setHidden(
+    "authCard",
+    true
+  );
+
+  setHidden(
+    "resetPasswordCard",
+    true
+  );
+
+  setHidden(
+    "app",
+    false
+  );
 
   if ($("userEmail")) {
+
     $("userEmail").textContent =
       currentUser.email || "";
   }
@@ -487,6 +621,7 @@ async function showApp() {
   ]);
 
   if (currentIsAdmin) {
+
     await Promise.all([
       loadAdminSettings(),
       loadAdminTasks(),
@@ -501,25 +636,36 @@ async function showApp() {
 // ============================================================
 
 async function applyPendingReferral() {
-  if (!currentUser) return;
+
+  if (!currentUser) {
+    return;
+  }
 
   const ref =
     localStorage.getItem(
       "pending_referral"
     );
 
-  if (!ref) return;
+  if (!ref) {
+    return;
+  }
 
   try {
-    const { data, error } =
+
+    const {
+      data,
+      error
+    } =
       await sb.rpc(
         "apply_referral",
         {
-          p_referral_code: ref
+          p_referral_code:
+            ref
         }
       );
 
     if (error) {
+
       console.error(
         "REFERRAL APPLY ERROR:",
         error
@@ -538,6 +684,7 @@ async function applyPendingReferral() {
     );
 
   } catch (err) {
+
     console.error(
       "REFERRAL ERROR:",
       err
@@ -551,7 +698,10 @@ async function applyPendingReferral() {
 // ============================================================
 
 async function loadProfile() {
-  if (!currentUser) return;
+
+  if (!currentUser) {
+    return;
+  }
 
   const balanceBox =
     $("balance");
@@ -561,12 +711,13 @@ async function loadProfile() {
       "Loading...";
   }
 
-  const { data, error } =
+  const {
+    data,
+    error
+  } =
     await sb
       .from("profiles")
-      .select(
-        "coin_balance"
-      )
+      .select("coin_balance")
       .eq(
         "id",
         currentUser.id
@@ -574,6 +725,7 @@ async function loadProfile() {
       .single();
 
   if (error) {
+
     console.error(
       "PROFILE ERROR:",
       error
@@ -588,6 +740,7 @@ async function loadProfile() {
   }
 
   if (balanceBox) {
+
     balanceBox.textContent =
       data?.coin_balance ?? 0;
   }
@@ -595,14 +748,18 @@ async function loadProfile() {
 
 
 // ============================================================
-// TASKS
+// LOAD TASKS
 // ============================================================
 
 async function loadTasks() {
+
   const box =
     $("tasks");
 
-  if (!box || !currentUser) {
+  if (
+    !box ||
+    !currentUser
+  ) {
     return;
   }
 
@@ -611,14 +768,16 @@ async function loadTasks() {
   const {
     data,
     error
-  } = await sb
-    .from("tasks")
-    .select(
-      "id,title,reward_coins,video_url"
-    )
-    .order("id");
+  } =
+    await sb
+      .from("tasks")
+      .select(
+        "id,title,reward_coins,video_url"
+      )
+      .order("id");
 
   if (error) {
+
     console.error(
       "TASK LOAD ERROR:",
       error
@@ -631,6 +790,7 @@ async function loadTasks() {
   }
 
   if (!data?.length) {
+
     box.innerHTML =
       '<p class="muted">No tasks available.</p>';
 
@@ -638,6 +798,7 @@ async function loadTasks() {
   }
 
   for (const task of data) {
+
     await renderTask(
       box,
       task
@@ -654,23 +815,26 @@ async function renderTask(
   box,
   task
 ) {
+
   const {
     data: claim,
     error
-  } = await sb
-    .from("task_claims")
-    .select("id")
-    .eq(
-      "user_id",
-      currentUser.id
-    )
-    .eq(
-      "task_id",
-      task.id
-    )
-    .maybeSingle();
+  } =
+    await sb
+      .from("task_claims")
+      .select("id")
+      .eq(
+        "user_id",
+        currentUser.id
+      )
+      .eq(
+        "task_id",
+        task.id
+      )
+      .maybeSingle();
 
   if (error) {
+
     console.error(
       "TASK CLAIM CHECK ERROR:",
       error
@@ -682,13 +846,18 @@ async function renderTask(
       "div"
     );
 
-  div.className = "task";
+  div.className =
+    "task";
 
   const reward =
-    Number(task.reward_coins) || 0;
+    Number(
+      task.reward_coins
+    ) || 0;
+
 
   // Already claimed
   if (claim) {
+
     div.innerHTML = `
       <strong>
         ${escapeHtml(task.title)}
@@ -704,11 +873,14 @@ async function renderTask(
     `;
 
     box.appendChild(div);
+
     return;
   }
 
+
   // Video task
   if (task.video_url) {
+
     div.innerHTML = `
       <strong>
         🎥 ${escapeHtml(task.title)}
@@ -753,57 +925,80 @@ async function renderTask(
 
     let watched = false;
 
-    watchBtn.onclick = () => {
-      if (watched) return;
+    watchBtn.onclick =
+      () => {
 
-      watched = true;
+        if (watched) {
+          return;
+        }
 
-      try {
-        window.open(
-          task.video_url,
-          "_blank",
-          "noopener,noreferrer"
-        );
-      } catch (err) {
-        console.error(
-          "VIDEO OPEN ERROR:",
-          err
-        );
-      }
+        watched = true;
 
-      watchBtn.disabled = true;
+        try {
 
-      if (videoMsg) {
-        videoMsg.textContent =
-          "🎬 Video ဖွင့်ပြီးပါပြီ။ 5 စက္ကန့်စောင့်ပါ...";
-      }
+          window.open(
+            task.video_url,
+            "_blank",
+            "noopener,noreferrer"
+          );
 
-      setTimeout(() => {
+        } catch (err) {
+
+          console.error(
+            "VIDEO OPEN ERROR:",
+            err
+          );
+        }
+
+        watchBtn.disabled =
+          true;
+
         if (videoMsg) {
+
           videoMsg.textContent =
-            "✅ Video ကြည့်ပြီးပါပြီ။ Claim လုပ်နိုင်ပါပြီ။";
+            "🎬 Video ဖွင့်ပြီးပါပြီ။ 5 စက္ကန့်စောင့်ပါ...";
         }
 
-        if (claimBtn) {
-          claimBtn.disabled = false;
+        setTimeout(
+          () => {
+
+            if (videoMsg) {
+
+              videoMsg.textContent =
+                "✅ Video ကြည့်ပြီးပါပြီ။ Claim လုပ်နိုင်ပါပြီ။";
+            }
+
+            if (claimBtn) {
+              claimBtn.disabled =
+                false;
+            }
+
+          },
+          5000
+        );
+      };
+
+
+    claimBtn.onclick =
+      async () => {
+
+        if (claimBtn.disabled) {
+          return;
         }
 
-      }, 5000);
-    };
+        claimBtn.disabled =
+          true;
 
-    claimBtn.onclick = async () => {
-      if (claimBtn.disabled) return;
-
-      claimBtn.disabled = true;
-
-      await claimTask(
-        task.id
-      );
-    };
+        await claimTask(
+          task.id
+        );
+      };
 
     box.appendChild(div);
+
     return;
   }
+
 
   // Normal task
   div.innerHTML = `
@@ -828,15 +1023,20 @@ async function renderTask(
       ".normalClaimBtn"
     );
 
-  button.onclick = async () => {
-    if (button.disabled) return;
+  button.onclick =
+    async () => {
 
-    button.disabled = true;
+      if (button.disabled) {
+        return;
+      }
 
-    await claimTask(
-      task.id
-    );
-  };
+      button.disabled =
+        true;
+
+      await claimTask(
+        task.id
+      );
+    };
 
   box.appendChild(div);
 }
@@ -846,26 +1046,35 @@ async function renderTask(
 // CLAIM TASK
 // ============================================================
 
-async function claimTask(taskId) {
+async function claimTask(
+  taskId
+) {
+
   if (!currentUser) {
+
     alert(
       "Please login first."
     );
+
     return;
   }
 
   try {
+
     const {
       data,
       error
-    } = await sb.rpc(
-      "claim_task",
-      {
-        p_task_id: taskId
-      }
-    );
+    } =
+      await sb.rpc(
+        "claim_task",
+        {
+          p_task_id:
+            taskId
+        }
+      );
 
     if (error) {
+
       console.error(
         "CLAIM TASK ERROR:",
         error
@@ -889,6 +1098,7 @@ async function claimTask(taskId) {
     ]);
 
   } catch (err) {
+
     console.error(
       "CLAIM TASK ERROR:",
       err
@@ -896,8 +1106,10 @@ async function claimTask(taskId) {
 
     alert(
       "❌ " +
-      (err?.message ||
-        "Task claim failed.")
+      (
+        err?.message ||
+        "Task claim failed."
+      )
     );
   }
 }
@@ -908,10 +1120,14 @@ async function claimTask(taskId) {
 // ============================================================
 
 async function loadTransactions() {
+
   const box =
     $("transactions");
 
-  if (!box || !currentUser) {
+  if (
+    !box ||
+    !currentUser
+  ) {
     return;
   }
 
@@ -920,24 +1136,26 @@ async function loadTransactions() {
   const {
     data,
     error
-  } = await sb
-    .from("coin_transactions")
-    .select(
-      "amount,type,created_at"
-    )
-    .eq(
-      "user_id",
-      currentUser.id
-    )
-    .order(
-      "created_at",
-      {
-        ascending: false
-      }
-    )
-    .limit(30);
+  } =
+    await sb
+      .from("coin_transactions")
+      .select(
+        "amount,type,created_at"
+      )
+      .eq(
+        "user_id",
+        currentUser.id
+      )
+      .order(
+        "created_at",
+        {
+          ascending: false
+        }
+      )
+      .limit(30);
 
   if (error) {
+
     console.error(
       "TRANSACTIONS ERROR:",
       error
@@ -950,6 +1168,7 @@ async function loadTransactions() {
   }
 
   if (!data?.length) {
+
     box.innerHTML =
       '<p class="muted">No transactions yet.</p>';
 
@@ -957,8 +1176,10 @@ async function loadTransactions() {
   }
 
   for (const t of data) {
+
     let label =
-      t.type || "Transaction";
+      t.type ||
+      "Transaction";
 
     if (
       t.type ===
@@ -988,14 +1209,17 @@ async function loadTransactions() {
       Number(t.amount) || 0;
 
     const prefix =
-      amount >= 0 ? "+" : "";
+      amount >= 0
+        ? "+"
+        : "";
 
     const div =
       document.createElement(
         "div"
       );
 
-    div.className = "tx";
+    div.className =
+      "tx";
 
     div.innerHTML = `
       <strong>
@@ -1023,10 +1247,14 @@ async function loadTransactions() {
 // ============================================================
 
 async function loadWithdrawals() {
+
   const box =
     $("withdrawals");
 
-  if (!box || !currentUser) {
+  if (
+    !box ||
+    !currentUser
+  ) {
     return;
   }
 
@@ -1035,24 +1263,26 @@ async function loadWithdrawals() {
   const {
     data,
     error
-  } = await sb
-    .from("withdrawals")
-    .select(
-      "id,amount,status,payment_method,created_at"
-    )
-    .eq(
-      "user_id",
-      currentUser.id
-    )
-    .order(
-      "created_at",
-      {
-        ascending: false
-      }
-    )
-    .limit(20);
+  } =
+    await sb
+      .from("withdrawals")
+      .select(
+        "id,amount,status,payment_method,created_at"
+      )
+      .eq(
+        "user_id",
+        currentUser.id
+      )
+      .order(
+        "created_at",
+        {
+          ascending: false
+        }
+      )
+      .limit(20);
 
   if (error) {
+
     console.error(
       "WITHDRAWALS ERROR:",
       error
@@ -1065,6 +1295,7 @@ async function loadWithdrawals() {
   }
 
   if (!data?.length) {
+
     box.innerHTML =
       '<p class="muted">No withdrawals yet.</p>';
 
@@ -1072,18 +1303,18 @@ async function loadWithdrawals() {
   }
 
   for (const w of data) {
+
     const div =
       document.createElement(
         "div"
       );
 
-    div.className = "tx";
+    div.className =
+      "tx";
 
     div.innerHTML = `
       <strong>
-        Withdrawal #${escapeHtml(
-          w.id
-        )}
+        Withdrawal #${escapeHtml(w.id)}
       </strong>
 
       · ${Number(w.amount) || 0} Coins
@@ -1094,14 +1325,8 @@ async function loadWithdrawals() {
         )}
       </div>
 
-      <span
-        class="withdraw-status ${escapeHtml(
-          w.status
-        )}"
-      >
-        ${escapeHtml(
-          w.status
-        )}
+      <span class="withdraw-status ${escapeHtml(w.status)}">
+        ${escapeHtml(w.status)}
       </span>
 
       <div class="muted">
@@ -1119,15 +1344,18 @@ async function loadWithdrawals() {
 
 
 // ============================================================
-// REQUEST WITHDRAWAL
+// WITHDRAW
 // ============================================================
 
 async function withdraw() {
+
   if (!currentUser) {
+
     setMessage(
       "withdrawMsg",
       "❌ Login ဝင်ပါ။"
     );
+
     return;
   }
 
@@ -1137,11 +1365,13 @@ async function withdraw() {
     );
 
   const method =
-    $("paymentMethod")?.value || "";
+    $("paymentMethod")?.value ||
+    "";
 
   const account =
     $("paymentAccount")
-      ?.value.trim() || "";
+      ?.value.trim() ||
+    "";
 
   setMessage(
     "withdrawMsg",
@@ -1153,26 +1383,32 @@ async function withdraw() {
       amount
     )
   ) {
+
     setMessage(
       "withdrawMsg",
       "❌ Amount ကို မှန်မှန်ထည့်ပါ။"
     );
+
     return;
   }
 
   if (!method) {
+
     setMessage(
       "withdrawMsg",
       "❌ Payment method ရွေးပါ။"
     );
+
     return;
   }
 
   if (!account) {
+
     setMessage(
       "withdrawMsg",
       "❌ Demo account ဖြည့်ပါ။"
     );
+
     return;
   }
 
@@ -1180,7 +1416,8 @@ async function withdraw() {
     $("withdrawBtn");
 
   if (button) {
-    button.disabled = true;
+    button.disabled =
+      true;
   }
 
   setMessage(
@@ -1189,19 +1426,27 @@ async function withdraw() {
   );
 
   try {
+
     const {
       data,
       error
-    } = await sb.rpc(
-      "request_withdrawal",
-      {
-        p_amount: amount,
-        p_payment_method: method,
-        p_payment_account: account
-      }
-    );
+    } =
+      await sb.rpc(
+        "request_withdrawal",
+        {
+          p_amount:
+            amount,
+
+          p_payment_method:
+            method,
+
+          p_payment_account:
+            account
+        }
+      );
 
     if (error) {
+
       console.error(
         "WITHDRAW ERROR:",
         error
@@ -1237,6 +1482,7 @@ async function withdraw() {
     ]);
 
   } catch (err) {
+
     console.error(
       "WITHDRAW ERROR:",
       err
@@ -1245,13 +1491,17 @@ async function withdraw() {
     setMessage(
       "withdrawMsg",
       "❌ " +
-      (err?.message ||
-        "Withdrawal failed.")
+      (
+        err?.message ||
+        "Withdrawal failed."
+      )
     );
 
   } finally {
+
     if (button) {
-      button.disabled = false;
+      button.disabled =
+        false;
     }
   }
 }
@@ -1262,6 +1512,7 @@ async function withdraw() {
 // ============================================================
 
 async function loadAdminTasks() {
+
   const box =
     $("adminTasks");
 
@@ -1278,14 +1529,16 @@ async function loadAdminTasks() {
   const {
     data,
     error
-  } = await sb
-    .from("tasks")
-    .select(
-      "id,title,reward_coins,video_url"
-    )
-    .order("id");
+  } =
+    await sb
+      .from("tasks")
+      .select(
+        "id,title,reward_coins,video_url"
+      )
+      .order("id");
 
   if (error) {
+
     console.error(
       "ADMIN TASK ERROR:",
       error
@@ -1298,6 +1551,7 @@ async function loadAdminTasks() {
   }
 
   if (!data?.length) {
+
     box.innerHTML =
       '<p class="muted">No tasks yet.</p>';
 
@@ -1305,12 +1559,14 @@ async function loadAdminTasks() {
   }
 
   for (const task of data) {
+
     const div =
       document.createElement(
         "div"
       );
 
-    div.className = "tx";
+    div.className =
+      "tx";
 
     div.innerHTML = `
       <strong>
@@ -1387,10 +1643,13 @@ async function editTask(
   oldTitle,
   oldReward
 ) {
+
   if (!currentIsAdmin) {
+
     alert(
       "❌ Admin only."
     );
+
     return;
   }
 
@@ -1410,7 +1669,9 @@ async function editTask(
       oldReward
     );
 
-  if (rewardInput === null) {
+  if (
+    rewardInput === null
+  ) {
     return;
   }
 
@@ -1425,28 +1686,33 @@ async function editTask(
       reward
     )
   ) {
+
     alert(
       "Task title နဲ့ Reward Coins မှန်မှန်ထည့်ပါ။"
     );
+
     return;
   }
 
   const {
     error
-  } = await sb
-    .from("tasks")
-    .update({
-      title:
-        title.trim(),
-      reward_coins:
-        reward
-    })
-    .eq(
-      "id",
-      id
-    );
+  } =
+    await sb
+      .from("tasks")
+      .update({
+        title:
+          title.trim(),
+
+        reward_coins:
+          reward
+      })
+      .eq(
+        "id",
+        id
+      );
 
   if (error) {
+
     console.error(
       "EDIT TASK ERROR:",
       error
@@ -1474,11 +1740,16 @@ async function editTask(
 // DELETE TASK
 // ============================================================
 
-async function deleteTask(id) {
+async function deleteTask(
+  id
+) {
+
   if (!currentIsAdmin) {
+
     alert(
       "❌ Admin only."
     );
+
     return;
   }
 
@@ -1493,15 +1764,17 @@ async function deleteTask(id) {
 
   const {
     error
-  } = await sb
-    .from("tasks")
-    .delete()
-    .eq(
-      "id",
-      id
-    );
+  } =
+    await sb
+      .from("tasks")
+      .delete()
+      .eq(
+        "id",
+        id
+      );
 
   if (error) {
+
     console.error(
       "DELETE TASK ERROR:",
       error
@@ -1530,17 +1803,21 @@ async function deleteTask(id) {
 // ============================================================
 
 async function addTask() {
+
   if (!currentIsAdmin) {
+
     setMessage(
       "taskMsg",
       "❌ Admin only."
     );
+
     return;
   }
 
   const title =
     $("taskTitle")
-      ?.value.trim() || "";
+      ?.value.trim() ||
+    "";
 
   const reward =
     Number(
@@ -1553,10 +1830,12 @@ async function addTask() {
       reward
     )
   ) {
+
     setMessage(
       "taskMsg",
       "❌ Task title နဲ့ Reward Coins မှန်မှန်ဖြည့်ပါ။"
     );
+
     return;
   }
 
@@ -1567,15 +1846,17 @@ async function addTask() {
 
   const {
     error
-  } = await sb
-    .from("tasks")
-    .insert({
-      title,
-      reward_coins:
-        reward
-    });
+  } =
+    await sb
+      .from("tasks")
+      .insert({
+        title,
+        reward_coins:
+          reward
+      });
 
   if (error) {
+
     console.error(
       "ADD TASK ERROR:",
       error
@@ -1595,11 +1876,13 @@ async function addTask() {
   );
 
   if ($("taskTitle")) {
-    $("taskTitle").value = "";
+    $("taskTitle").value =
+      "";
   }
 
   if ($("taskReward")) {
-    $("taskReward").value = "";
+    $("taskReward").value =
+      "";
   }
 
   await Promise.all([
@@ -1614,6 +1897,7 @@ async function addTask() {
 // ============================================================
 
 async function loadAdminWithdrawals() {
+
   const box =
     $("adminWithdrawals");
 
@@ -1630,20 +1914,22 @@ async function loadAdminWithdrawals() {
   const {
     data,
     error
-  } = await sb
-    .from("withdrawals")
-    .select(
-      "id,user_id,amount,status,payment_method,payment_account,created_at"
-    )
-    .order(
-      "created_at",
-      {
-        ascending: false
-      }
-    )
-    .limit(50);
+  } =
+    await sb
+      .from("withdrawals")
+      .select(
+        "id,user_id,amount,status,payment_method,payment_account,created_at"
+      )
+      .order(
+        "created_at",
+        {
+          ascending: false
+        }
+      )
+      .limit(50);
 
   if (error) {
+
     console.error(
       "ADMIN WITHDRAWALS ERROR:",
       error
@@ -1656,6 +1942,7 @@ async function loadAdminWithdrawals() {
   }
 
   if (!data?.length) {
+
     box.innerHTML =
       '<p class="muted">No withdrawals yet.</p>';
 
@@ -1663,34 +1950,28 @@ async function loadAdminWithdrawals() {
   }
 
   for (const w of data) {
+
     const div =
       document.createElement(
         "div"
       );
 
-    div.className = "tx";
+    div.className =
+      "tx";
 
     div.innerHTML = `
       <strong>
-        Withdrawal #${escapeHtml(
-          w.id
-        )}
+        Withdrawal #${escapeHtml(w.id)}
         · ${Number(w.amount) || 0} Coins
       </strong>
 
       <div class="muted">
-        ${escapeHtml(
-          w.payment_method
-        )}
-        · ${escapeHtml(
-          w.status
-        )}
+        ${escapeHtml(w.payment_method)}
+        · ${escapeHtml(w.status)}
       </div>
 
       <div class="muted">
-        ${escapeHtml(
-          w.payment_account
-        )}
+        ${escapeHtml(w.payment_account)}
       </div>
 
       <div class="muted">
@@ -1706,6 +1987,7 @@ async function loadAdminWithdrawals() {
       w.status ===
       "pending"
     ) {
+
       const approve =
         document.createElement(
           "button"
@@ -1723,6 +2005,7 @@ async function loadAdminWithdrawals() {
             w.id,
             "approved"
           );
+
 
       const reject =
         document.createElement(
@@ -1764,10 +2047,13 @@ async function updateWithdrawalStatus(
   id,
   status
 ) {
+
   if (!currentIsAdmin) {
+
     alert(
       "❌ Admin only."
     );
+
     return;
   }
 
@@ -1789,17 +2075,20 @@ async function updateWithdrawalStatus(
 
   const {
     error
-  } = await sb.rpc(
-    "update_withdrawal_status",
-    {
-      p_withdrawal_id:
-        id,
-      p_status:
-        status
-    }
-  );
+  } =
+    await sb.rpc(
+      "update_withdrawal_status",
+      {
+        p_withdrawal_id:
+          id,
+
+        p_status:
+          status
+      }
+    );
 
   if (error) {
+
     console.error(
       "UPDATE WITHDRAWAL ERROR:",
       error
@@ -1830,6 +2119,7 @@ async function updateWithdrawalStatus(
 // ============================================================
 
 async function setupReferral() {
+
   if (!currentUser) {
     return;
   }
@@ -1841,9 +2131,6 @@ async function setupReferral() {
     $("referralMsg");
 
   if (!linkBox) {
-    console.error(
-      "REFERRAL LINK INPUT NOT FOUND"
-    );
     return;
   }
 
@@ -1853,24 +2140,27 @@ async function setupReferral() {
   const {
     data,
     error
-  } = await sb
-    .from("profiles")
-    .select(
-      "referral_code"
-    )
-    .eq(
-      "id",
-      currentUser.id
-    )
-    .single();
+  } =
+    await sb
+      .from("profiles")
+      .select(
+        "referral_code"
+      )
+      .eq(
+        "id",
+        currentUser.id
+      )
+      .single();
 
   if (error) {
+
     console.error(
       "REFERRAL ERROR:",
       error
     );
 
     if (msg) {
+
       msg.textContent =
         "❌ Referral error: " +
         error.message;
@@ -1883,9 +2173,12 @@ async function setupReferral() {
     data?.referral_code;
 
   if (!code) {
+
     try {
+
       code =
-        crypto.randomUUID()
+        crypto
+          .randomUUID()
           .replace(
             /-/g,
             ""
@@ -1897,16 +2190,10 @@ async function setupReferral() {
           .toUpperCase();
 
     } catch (err) {
-      console.error(
-        "RANDOM CODE ERROR:",
-        err
-      );
 
       code =
         Math.random()
-          .toString(
-            36
-          )
+          .toString(36)
           .substring(
             2,
             10
@@ -1916,24 +2203,27 @@ async function setupReferral() {
 
     const {
       error: updateError
-    } = await sb
-      .from("profiles")
-      .update({
-        referral_code:
-          code
-      })
-      .eq(
-        "id",
-        currentUser.id
-      );
+    } =
+      await sb
+        .from("profiles")
+        .update({
+          referral_code:
+            code
+        })
+        .eq(
+          "id",
+          currentUser.id
+        );
 
     if (updateError) {
+
       console.error(
         "REFERRAL CODE UPDATE ERROR:",
         updateError
       );
 
       if (msg) {
+
         msg.textContent =
           "❌ " +
           updateError.message;
@@ -1944,14 +2234,13 @@ async function setupReferral() {
   }
 
   const referralLink =
-    `${location.origin}${location.pathname}?ref=${encodeURIComponent(
-      code
-    )}`;
+    `${location.origin}${location.pathname}?ref=${encodeURIComponent(code)}`;
 
   linkBox.value =
     referralLink;
 
   if (msg) {
+
     msg.textContent =
       "✅ Your Invite Link is ready!";
   }
@@ -1961,10 +2250,11 @@ async function setupReferral() {
 
 
 // ============================================================
-// LOAD REFERRAL BONUS TEXT
+// REFERRAL BONUS TEXT
 // ============================================================
 
 async function loadReferralBonusText() {
+
   const box =
     $("referralBonusText");
 
@@ -1975,25 +2265,30 @@ async function loadReferralBonusText() {
   const {
     data,
     error
-  } = await sb
-    .from("app_settings")
-    .select("value")
-    .eq(
-      "key",
-      "referral_bonus_coins"
-    )
-    .maybeSingle();
+  } =
+    await sb
+      .from("app_settings")
+      .select("value")
+      .eq(
+        "key",
+        "referral_bonus_coins"
+      )
+      .maybeSingle();
 
   if (error) {
+
     console.error(
       "REFERRAL BONUS LOAD ERROR:",
       error
     );
+
     return;
   }
 
   const bonus =
-    Number(data?.value);
+    Number(
+      data?.value
+    );
 
   if (
     Number.isInteger(
@@ -2001,9 +2296,12 @@ async function loadReferralBonusText() {
     ) &&
     bonus >= 0
   ) {
+
     box.textContent =
       `သူငယ်ချင်းကို Invite လုပ်ပြီး ${bonus} Coins Referral Bonus ရယူပါ။`;
+
   } else {
+
     box.textContent =
       "သူငယ်ချင်းကို Invite လုပ်ပြီး Referral Bonus ရယူပါ။";
   }
@@ -2015,6 +2313,7 @@ async function loadReferralBonusText() {
 // ============================================================
 
 async function loadAdminSettings() {
+
   if (!currentIsAdmin) {
     return;
   }
@@ -2022,29 +2321,25 @@ async function loadAdminSettings() {
   const input =
     $("adminReferralBonus");
 
-  const legacyInput =
-    $("referralBonus");
-
-  const msg =
-    $("adminSettingsMsg");
-
-  if (!input && !legacyInput) {
+  if (!input) {
     return;
   }
 
   const {
     data,
     error
-  } = await sb
-    .from("app_settings")
-    .select("value")
-    .eq(
-      "key",
-      "referral_bonus_coins"
-    )
-    .maybeSingle();
+  } =
+    await sb
+      .from("app_settings")
+      .select("value")
+      .eq(
+        "key",
+        "referral_bonus_coins"
+      )
+      .maybeSingle();
 
   if (error) {
+
     console.error(
       "ADMIN SETTINGS LOAD ERROR:",
       error
@@ -2061,15 +2356,8 @@ async function loadAdminSettings() {
   const value =
     data?.value ?? 10;
 
-  if (input) {
-    input.value =
-      value;
-  }
-
-  if (legacyInput) {
-    legacyInput.value =
-      value;
-  }
+  input.value =
+    value;
 }
 
 
@@ -2078,11 +2366,14 @@ async function loadAdminSettings() {
 // ============================================================
 
 async function saveAdminSettings() {
+
   if (!currentIsAdmin) {
+
     setMessage(
       "adminSettingsMsg",
       "❌ Admin only."
     );
+
     return;
   }
 
@@ -2097,15 +2388,15 @@ async function saveAdminSettings() {
     Number(input.value);
 
   if (
-    !Number.isInteger(
-      value
-    ) ||
+    !Number.isInteger(value) ||
     value < 0
   ) {
+
     setMessage(
       "adminSettingsMsg",
       "❌ Referral Bonus ကို 0 သို့မဟုတ် အထက်ထည့်ပါ။"
     );
+
     return;
   }
 
@@ -2114,37 +2405,17 @@ async function saveAdminSettings() {
     "🔄 Saving..."
   );
 
-  const {
-    data: existing,
-    error: findError
-  } = await sb
-    .from("app_settings")
-    .select("key")
-    .eq(
-      "key",
-      "referral_bonus_coins"
-    )
-    .maybeSingle();
+  try {
 
-  if (findError) {
-    console.error(
-      "SETTINGS FIND ERROR:",
-      findError
-    );
+    /*
+      First try UPDATE.
+      The row already exists in the current project.
+    */
 
-    setMessage(
-      "adminSettingsMsg",
-      "❌ " +
-      findError.message
-    );
-
-    return;
-  }
-
-  let error = null;
-
-  if (existing) {
-    const result =
+    const {
+      data: updatedRows,
+      error: updateError
+    } =
       await sb
         .from("app_settings")
         .update({
@@ -2153,106 +2424,86 @@ async function saveAdminSettings() {
         .eq(
           "key",
           "referral_bonus_coins"
+        )
+        .select("key");
+
+    if (updateError) {
+
+      console.error(
+        "SETTINGS UPDATE ERROR:",
+        updateError
+      );
+
+      setMessage(
+        "adminSettingsMsg",
+        "❌ " +
+        updateError.message
+      );
+
+      return;
+    }
+
+    /*
+      If no row was updated, create it.
+    */
+
+    if (
+      !updatedRows ||
+      updatedRows.length === 0
+    ) {
+
+      const {
+        error: insertError
+      } =
+        await sb
+          .from("app_settings")
+          .insert({
+            key:
+              "referral_bonus_coins",
+
+            value
+          });
+
+      if (insertError) {
+
+        console.error(
+          "SETTINGS INSERT ERROR:",
+          insertError
         );
 
-    error =
-      result.error;
+        setMessage(
+          "adminSettingsMsg",
+          "❌ " +
+          insertError.message
+        );
 
-  } else {
-    const result =
-      await sb
-        .from("app_settings")
-        .insert({
-          key:
-            "referral_bonus_coins",
-          value
-        });
+        return;
+      }
+    }
 
-    error =
-      result.error;
-  }
+    setMessage(
+      "adminSettingsMsg",
+      `✅ Referral Bonus ${value} Coins အဖြစ်သိမ်းပြီးပါပြီ။`
+    );
 
-  if (error) {
+    await loadReferralBonusText();
+
+  } catch (err) {
+
     console.error(
       "ADMIN SETTINGS SAVE ERROR:",
-      error
+      err
     );
 
     setMessage(
       "adminSettingsMsg",
-      "❌ " + error.message
+      "❌ " +
+      (
+        err?.message ||
+        "Settings save failed."
+      )
     );
-
-    return;
   }
-
-  if ($("referralBonus")) {
-    $("referralBonus").value =
-      value;
-  }
-
-  setMessage(
-    "adminSettingsMsg",
-    `✅ Referral Bonus ${value} Coins အဖြစ်သိမ်းပြီးပါပြီ။`
-  );
-
-  await loadReferralBonusText();
-}
-
-
-// ============================================================
-// LEGACY SAVE REFERRAL BONUS
-// Keeps old button working
-// ============================================================
-
-async function saveReferralBonus() {
-  if (!currentIsAdmin) {
-    setMessage(
-      "adminReferralMsg",
-      "❌ Admin only."
-    );
-    return;
-  }
-
-  const input =
-    $("referralBonus");
-
-  if (!input) {
-    return;
-  }
-
-  const bonus =
-    Number(input.value);
-
-  if (
-    !Number.isInteger(
-      bonus
-    ) ||
-    bonus < 0
-  ) {
-    setMessage(
-      "adminReferralMsg",
-      "❌ Referral Bonus Coins မှန်မှန်ထည့်ပါ။"
-    );
-    return;
-  }
-
-  if ($("adminReferralBonus")) {
-    $("adminReferralBonus").value =
-      bonus;
-  }
-
-  await saveAdminSettings();
-
-  const settingsMsg =
-    $("adminSettingsMsg")
-      ?.textContent || "";
-
-  setMessage(
-    "adminReferralMsg",
-    settingsMsg ||
-      `✅ Referral Bonus = ${bonus} Coins`
-  );
 }
 
 
@@ -2261,11 +2512,9 @@ async function saveReferralBonus() {
 // ============================================================
 
 async function copyReferralLink() {
+
   const linkBox =
     $("referralLink");
-
-  const linkText =
-    $("referralLinkText");
 
   const msg =
     $("referralMsg");
@@ -2279,35 +2528,35 @@ async function copyReferralLink() {
     linkBox.value !==
       "Loading referral link..."
   ) {
+
     referralLink =
       linkBox.value;
-
-  } else if (
-    linkText &&
-    linkText.textContent
-  ) {
-    referralLink =
-      linkText.textContent.trim();
   }
 
   if (!referralLink) {
+
     if (msg) {
+
       msg.textContent =
         "❌ Referral Link မတွေ့ပါ။";
     }
+
     return;
   }
 
   try {
+
     if (
       navigator.clipboard &&
       window.isSecureContext
     ) {
+
       await navigator.clipboard.writeText(
         referralLink
       );
 
       if (msg) {
+
         msg.textContent =
           "✅ Invite Link copied!";
       }
@@ -2315,8 +2564,8 @@ async function copyReferralLink() {
       return;
     }
 
-    // Fallback for older/mobile browsers
     if (linkBox) {
+
       linkBox.focus();
       linkBox.select();
 
@@ -2326,12 +2575,17 @@ async function copyReferralLink() {
         );
 
       if (copied) {
+
         if (msg) {
+
           msg.textContent =
             "✅ Invite Link copied!";
         }
+
       } else {
+
         if (msg) {
+
           msg.textContent =
             "📋 Link ကို ဖိထားပြီး Copy လုပ်ပါ။";
         }
@@ -2339,12 +2593,14 @@ async function copyReferralLink() {
     }
 
   } catch (err) {
+
     console.error(
       "COPY ERROR:",
       err
     );
 
     if (msg) {
+
       msg.textContent =
         "📋 Link ကို ဖိထားပြီး Copy လုပ်ပါ။";
     }
@@ -2357,9 +2613,13 @@ async function copyReferralLink() {
 // ============================================================
 
 async function logoutUser() {
+
   try {
+
     await sb.auth.signOut();
+
   } catch (err) {
+
     console.error(
       "LOGOUT ERROR:",
       err
@@ -2378,6 +2638,7 @@ async function logoutUser() {
 // ============================================================
 
 function showPasswordRecovery() {
+
   setHidden(
     "authCard",
     true
@@ -2400,7 +2661,11 @@ function showPasswordRecovery() {
 // ============================================================
 
 sb.auth.onAuthStateChange(
-  async (event, session) => {
+  async (
+    event,
+    session
+  ) => {
+
     console.log(
       "AUTH EVENT:",
       event
@@ -2410,25 +2675,30 @@ sb.auth.onAuthStateChange(
       event ===
       "PASSWORD_RECOVERY"
     ) {
+
       showPasswordRecovery();
+
       return;
     }
 
     if (
       session?.user
     ) {
+
       currentUser =
         session.user;
 
-      // Do not duplicate full loading
-      // while the initial session is being processed.
       if (
         event !==
         "INITIAL_SESSION"
       ) {
+
         try {
+
           await showApp();
+
         } catch (err) {
+
           console.error(
             "AUTH SHOW APP ERROR:",
             err
@@ -2440,6 +2710,7 @@ sb.auth.onAuthStateChange(
       event ===
       "SIGNED_OUT"
     ) {
+
       currentUser = null;
       currentIsAdmin = false;
 
@@ -2470,7 +2741,6 @@ document.addEventListener(
   "DOMContentLoaded",
   () => {
 
-    // Login
     const loginBtn =
       $("loginBtn");
 
@@ -2479,7 +2749,7 @@ document.addEventListener(
         login;
     }
 
-    // Register
+
     const signupBtn =
       $("signupBtn");
 
@@ -2488,7 +2758,7 @@ document.addEventListener(
         signup;
     }
 
-    // Forgot password
+
     const forgotPasswordBtn =
       $("forgotPasswordBtn");
 
@@ -2497,7 +2767,7 @@ document.addEventListener(
         forgotPassword;
     }
 
-    // Update password
+
     const updatePasswordBtn =
       $("updatePasswordBtn");
 
@@ -2506,7 +2776,7 @@ document.addEventListener(
         updatePassword;
     }
 
-    // Logout
+
     const logoutBtn =
       $("logoutBtn");
 
@@ -2515,7 +2785,7 @@ document.addEventListener(
         logoutUser;
     }
 
-    // Withdrawal
+
     const withdrawBtn =
       $("withdrawBtn");
 
@@ -2524,68 +2794,78 @@ document.addEventListener(
         withdraw;
     }
 
-    // Admin settings
+
     const adminSaveSettingsBtn =
       $("adminSaveSettingsBtn");
 
     if (adminSaveSettingsBtn) {
+
       adminSaveSettingsBtn.onclick =
         saveAdminSettings;
     }
 
-    // Legacy referral save button
-    const saveReferralBonusBtn =
-      $("saveReferralBonusBtn");
 
-    if (saveReferralBonusBtn) {
-      saveReferralBonusBtn.onclick =
-        saveReferralBonus;
-    }
-
-    // Copy referral
     const copyReferralBtn =
       $("copyReferralBtn");
 
     if (copyReferralBtn) {
+
       copyReferralBtn.onclick =
         copyReferralLink;
     }
 
-    // Enter key on login
+
+    const addTaskBtn =
+      $("addTaskBtn");
+
+    if (addTaskBtn) {
+
+      addTaskBtn.onclick =
+        addTask;
+    }
+
+
     const passwordInput =
       $("password");
 
     if (passwordInput) {
+
       passwordInput.addEventListener(
         "keydown",
         (event) => {
+
           if (
             event.key ===
             "Enter"
           ) {
+
             login();
           }
         }
       );
     }
 
-    // Enter key on email
+
     const emailInput =
       $("email");
 
     if (emailInput) {
+
       emailInput.addEventListener(
         "keydown",
         (event) => {
+
           if (
             event.key ===
             "Enter"
           ) {
+
             login();
           }
         }
       );
     }
+
   }
 );
 
@@ -2595,13 +2875,17 @@ document.addEventListener(
 // ============================================================
 
 (async function autoLogin() {
+
   try {
+
     const {
       data,
       error
-    } = await sb.auth.getSession();
+    } =
+      await sb.auth.getSession();
 
     if (error) {
+
       console.error(
         "SESSION ERROR:",
         error
@@ -2618,12 +2902,14 @@ document.addEventListener(
     if (
       data?.session?.user
     ) {
+
       currentUser =
         data.session.user;
 
       await showApp();
 
     } else {
+
       setHidden(
         "app",
         true
@@ -2641,6 +2927,7 @@ document.addEventListener(
     }
 
   } catch (err) {
+
     console.error(
       "AUTO LOGIN ERROR:",
       err
@@ -2649,8 +2936,11 @@ document.addEventListener(
     setMessage(
       "authMsg",
       "❌ " +
-      (err?.message ||
-        "Session error.")
+      (
+        err?.message ||
+        "Session error."
+      )
     );
   }
+
 })();
