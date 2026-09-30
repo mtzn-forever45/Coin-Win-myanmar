@@ -1,0 +1,13 @@
+{
+  "background_color": "#11ff46",
+  "dir": "ltr",
+  "display": "standalone",
+  "name": "Coin Win Myanmar",
+  "orientation": "any",
+  "scope": "/Coin-Win-myanmar/",
+  "short_name": "Coin Win",
+  "start_url": "/Coin-Win-myanmar/",
+  "theme_color": "#40eaff",
+  "id": "/Coin-Win-myanmar/",
+  "description": "Coin Win Myanmar rewards platform"
+}
