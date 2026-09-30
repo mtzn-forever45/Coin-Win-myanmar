@@ -1,48 +1,91 @@
-// Coin Win Myanmar - Supabase frontend
+// ============================================================
+// Coin Win Myanmar - Supabase Frontend
+// Revised / Clean Version
+// ============================================================
 
-const SUPABASE_URL = "https://oymkceiqfchtvcxdltor.supabase.co";
-const SUPABASE_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im95bWtjZWlxZmNodHZjeGRsdG9yIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODkzMjA4MjcsImV4cCI6MjEwNDg5NjgyN30.KPwCk-8OKrHxzyt746hjccSzbUHKTA1AI3LNSjk4rPg";
+const SUPABASE_URL =
+  "https://oymkceiqfchtvcxdltor.supabase.co";
 
-const sb = supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
+const SUPABASE_KEY =
+  "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmxlIiwicmVmIjoib3lta2NlaXFmY2h0dmN4ZGx0b3IiLCJyb2xlIjoiYW5vbiIsImlhdCI6MTc4OTMyMDgyNywiZXhwIjoyMTA0ODk2ODI3fQ.KPwCk-8OKrHxzyt746hjccSzbUHKTA1AI3LNSjk4rPg";
+
+const sb = supabase.createClient(
+  SUPABASE_URL,
+  SUPABASE_KEY
+);
 
 let currentUser = null;
+let currentIsAdmin = false;
 
 const $ = (id) => document.getElementById(id);
 
+
+// ============================================================
+// HELPERS
+// ============================================================
+
 function escapeHtml(value) {
-  return String(value ?? "").replace(/[&<>"']/g, (c) => ({
-    "&": "&amp;",
-    "<": "&lt;",
-    ">": "&gt;",
-    '"': "&quot;",
-    "'": "&#039;"
-  }[c]));
+  return String(value ?? "").replace(
+    /[&<>"']/g,
+    (c) =>
+      ({
+        "&": "&amp;",
+        "<": "&lt;",
+        ">": "&gt;",
+        '"': "&quot;",
+        "'": "&#039;"
+      })[c]
+  );
 }
 
 function setMessage(id, message) {
   const el = $(id);
-  if (el) el.textContent = message;
+  if (el) el.textContent = message || "";
+}
+
+function setHidden(id, hidden) {
+  const el = $(id);
+  if (el) el.hidden = hidden;
+}
+
+function isValidPositiveInteger(value) {
+  return Number.isInteger(value) && value > 0;
+}
+
+function formatDate(value) {
+  if (!value) return "";
+  const date = new Date(value);
+
+  if (Number.isNaN(date.getTime())) {
+    return "";
+  }
+
+  return date.toLocaleString();
 }
 
 
-// =========================
-// LOGIN
-// =========================
+// ============================================================
+// AUTH - LOGIN
+// ============================================================
 
 async function login() {
   const msg = $("authMsg");
 
   const email = $("email")?.value.trim();
-  const password = $("password")?.value;
+  const password = $("password")?.value || "";
 
   if (!email || !password) {
-    if (msg) msg.textContent = "❌ Email နဲ့ Password ဖြည့်ပါ။";
+    setMessage(
+      "authMsg",
+      "❌ Email နဲ့ Password ဖြည့်ပါ။"
+    );
     return;
   }
 
-  if (msg) {
-    msg.textContent = "🔄 Login လုပ်နေပါတယ်...";
-  }
+  setMessage(
+    "authMsg",
+    "🔄 Login လုပ်နေပါတယ်..."
+  );
 
   try {
     const { data, error } =
@@ -52,106 +95,59 @@ async function login() {
       });
 
     if (error) {
-      console.error(error);
-
-      if (msg) {
-        msg.textContent = "❌ " + error.message;
-      }
-
+      console.error("LOGIN ERROR:", error);
+      setMessage("authMsg", "❌ " + error.message);
       return;
     }
 
     currentUser = data.user;
 
-    if (msg) {
-      msg.textContent = "✅ Login အောင်မြင်ပါပြီ။";
-    }
+    setMessage(
+      "authMsg",
+      "✅ Login အောင်မြင်ပါပြီ။"
+    );
 
     await showApp();
 
   } catch (err) {
-    console.error(err);
+    console.error("LOGIN ERROR:", err);
 
-    if (msg) {
-      msg.textContent = "❌ " + err.message;
-    }
+    setMessage(
+      "authMsg",
+      "❌ " + (err?.message || "Login failed.")
+    );
   }
 }
 
-async function forgotPassword() {
-  const msg = $("authMsg");
-  const email = $("email")?.value.trim();
 
-  if (!email) {
-    if (msg) {
-      msg.textContent = "❌ Password ပြန်ပြောင်းရန် Email ထည့်ပါ။";
-    }
-    return;
-  }
-
-  if (msg) {
-    msg.textContent = "🔄 Password reset link ပို့နေပါတယ်...";
-  }
-
-  try {
-    const { error } = await sb.auth.resetPasswordForEmail(email, {
-      redirectTo: window.location.origin + window.location.pathname
-    });
-
-    if (error) {
-      console.error("FORGOT PASSWORD ERROR:", error);
-
-      if (msg) {
-        msg.textContent = "❌ " + error.message;
-      }
-
-      return;
-    }
-
-    if (msg) {
-      msg.textContent =
-        "✅ Password reset link ကို Email ထဲ ပို့ပြီးပါပြီ။";
-    }
-
-  } catch (err) {
-    console.error(err);
-
-    if (msg) {
-      msg.textContent = "❌ " + err.message;
-    }
-  }
-}
-
-// =========================
-// REGISTER
-// =========================
+// ============================================================
+// AUTH - REGISTER
+// ============================================================
 
 async function signup() {
-  const msg = $("authMsg");
-
   const email = $("email")?.value.trim();
-  const password = $("password")?.value;
+  const password = $("password")?.value || "";
 
   if (!email || !password) {
-    if (msg) {
-      msg.textContent =
-        "❌ Email နဲ့ Password ဖြည့်ပါ။";
-    }
+    setMessage(
+      "authMsg",
+      "❌ Email နဲ့ Password ဖြည့်ပါ။"
+    );
     return;
   }
 
   if (password.length < 6) {
-    if (msg) {
-      msg.textContent =
-        "❌ Password အနည်းဆုံး 6 လုံးထည့်ပါ။";
-    }
+    setMessage(
+      "authMsg",
+      "❌ Password အနည်းဆုံး 6 လုံးထည့်ပါ။"
+    );
     return;
   }
 
-  if (msg) {
-    msg.textContent =
-      "🔄 Register လုပ်နေပါတယ်...";
-  }
+  setMessage(
+    "authMsg",
+    "🔄 Register လုပ်နေပါတယ်..."
+  );
 
   try {
     const { data, error } =
@@ -163,69 +159,322 @@ async function signup() {
     if (error) {
       console.error("SIGNUP ERROR:", error);
 
-      if (msg) {
-        msg.textContent =
-          "❌ " + error.message;
-      }
+      setMessage(
+        "authMsg",
+        "❌ " + error.message
+      );
 
       return;
     }
 
-    if (data.session) {
+    if (data.session && data.user) {
       currentUser = data.user;
 
-      if (msg) {
-        msg.textContent =
-          "✅ Register အောင်မြင်ပါပြီ။";
-      }
+      setMessage(
+        "authMsg",
+        "✅ Register အောင်မြင်ပါပြီ။"
+      );
 
       await showApp();
 
     } else {
-      if (msg) {
-        msg.textContent =
-          "✅ Register အောင်မြင်ပါပြီ။ Email ကို Confirm လုပ်ပြီး Login ဝင်ပါ။";
-      }
+      setMessage(
+        "authMsg",
+        "✅ Register အောင်မြင်ပါပြီ။ Email ကို Confirm လုပ်ပြီး Login ဝင်ပါ။"
+      );
     }
 
   } catch (err) {
     console.error("SIGNUP ERROR:", err);
 
-    if (msg) {
-      msg.textContent =
-        "❌ " + err.message;
-    }
+    setMessage(
+      "authMsg",
+      "❌ " + (err?.message || "Registration failed.")
+    );
   }
 }
 
-(function saveReferralFromUrl() {
-  const params = new URLSearchParams(location.search);
-  const ref = params.get("ref");
 
-  if (ref) {
-    localStorage.setItem(
-      "pending_referral",
-      ref.trim().toUpperCase()
+// ============================================================
+// FORGOT PASSWORD
+// ============================================================
+
+async function forgotPassword() {
+  const email = $("email")?.value.trim();
+
+  if (!email) {
+    setMessage(
+      "authMsg",
+      "❌ Password ပြန်ပြောင်းရန် Email ထည့်ပါ။"
+    );
+    return;
+  }
+
+  setMessage(
+    "authMsg",
+    "🔄 Password reset link ပို့နေပါတယ်..."
+  );
+
+  try {
+    const redirectTo =
+      window.location.origin +
+      window.location.pathname;
+
+    const { error } =
+      await sb.auth.resetPasswordForEmail(
+        email,
+        {
+          redirectTo
+        }
+      );
+
+    if (error) {
+      console.error(
+        "FORGOT PASSWORD ERROR:",
+        error
+      );
+
+      setMessage(
+        "authMsg",
+        "❌ " + error.message
+      );
+
+      return;
+    }
+
+    setMessage(
+      "authMsg",
+      "✅ Password reset link ကို Email ထဲ ပို့ပြီးပါပြီ။"
+    );
+
+  } catch (err) {
+    console.error(
+      "FORGOT PASSWORD ERROR:",
+      err
+    );
+
+    setMessage(
+      "authMsg",
+      "❌ " + (err?.message || "Password reset failed.")
+    );
+  }
+}
+
+
+// ============================================================
+// PASSWORD UPDATE
+// ============================================================
+
+async function updatePassword() {
+  const newPassword =
+    $("newPassword")?.value || "";
+
+  const confirmPassword =
+    $("confirmPassword")?.value || "";
+
+  if (!newPassword || !confirmPassword) {
+    setMessage(
+      "resetPasswordMsg",
+      "❌ Password အသစ် နှစ်နေရာလုံး ဖြည့်ပါ။"
+    );
+    return;
+  }
+
+  if (newPassword.length < 6) {
+    setMessage(
+      "resetPasswordMsg",
+      "❌ Password အနည်းဆုံး 6 လုံးထည့်ပါ။"
+    );
+    return;
+  }
+
+  if (newPassword !== confirmPassword) {
+    setMessage(
+      "resetPasswordMsg",
+      "❌ Password နှစ်ခု မတူပါ။"
+    );
+    return;
+  }
+
+  setMessage(
+    "resetPasswordMsg",
+    "🔄 Password ပြောင်းနေပါတယ်..."
+  );
+
+  try {
+    const { error } =
+      await sb.auth.updateUser({
+        password: newPassword
+      });
+
+    if (error) {
+      console.error(
+        "UPDATE PASSWORD ERROR:",
+        error
+      );
+
+      setMessage(
+        "resetPasswordMsg",
+        "❌ " + error.message
+      );
+
+      return;
+    }
+
+    setMessage(
+      "resetPasswordMsg",
+      "✅ Password ပြောင်းပြီးပါပြီ။"
+    );
+
+    if ($("newPassword")) {
+      $("newPassword").value = "";
+    }
+
+    if ($("confirmPassword")) {
+      $("confirmPassword").value = "";
+    }
+
+    setTimeout(async () => {
+      await sb.auth.signOut();
+
+      currentUser = null;
+      currentIsAdmin = false;
+
+      setHidden(
+        "resetPasswordCard",
+        true
+      );
+
+      setHidden(
+        "authCard",
+        false
+      );
+
+      setHidden(
+        "app",
+        true
+      );
+
+      setMessage(
+        "authMsg",
+        "✅ Password အသစ်နဲ့ Login ဝင်ပါ။"
+      );
+
+    }, 1200);
+
+  } catch (err) {
+    console.error(
+      "UPDATE PASSWORD ERROR:",
+      err
+    );
+
+    setMessage(
+      "resetPasswordMsg",
+      "❌ " + (err?.message || "Password update failed.")
+    );
+  }
+}
+
+
+// ============================================================
+// REFERRAL FROM URL
+// ============================================================
+
+(function saveReferralFromUrl() {
+  try {
+    const params =
+      new URLSearchParams(
+        window.location.search
+      );
+
+    const ref =
+      params.get("ref");
+
+    if (ref) {
+      localStorage.setItem(
+        "pending_referral",
+        ref.trim().toUpperCase()
+      );
+    }
+
+  } catch (err) {
+    console.error(
+      "REFERRAL URL ERROR:",
+      err
     );
   }
 })();
 
-// =========================
+
+// ============================================================
+// CHECK ADMIN
+// ============================================================
+
+async function checkAdmin() {
+  if (!currentUser) {
+    currentIsAdmin = false;
+    return false;
+  }
+
+  try {
+    const { data, error } =
+      await sb
+        .from("admins")
+        .select("user_id")
+        .eq(
+          "user_id",
+          currentUser.id
+        )
+        .maybeSingle();
+
+    if (error) {
+      console.error(
+        "ADMIN CHECK ERROR:",
+        error
+      );
+
+      currentIsAdmin = false;
+      return false;
+    }
+
+    currentIsAdmin = !!data;
+
+    return currentIsAdmin;
+
+  } catch (err) {
+    console.error(
+      "ADMIN CHECK ERROR:",
+      err
+    );
+
+    currentIsAdmin = false;
+    return false;
+  }
+}
+
+
+// ============================================================
 // SHOW APP
-// =========================
+// ============================================================
 
 async function showApp() {
+  if (!currentUser) return;
 
-  const authCard = $("authCard");
-  const app = $("app");
-
-  if (authCard) authCard.hidden = true;
-  if (app) app.hidden = false;
+  setHidden("authCard", true);
+  setHidden("resetPasswordCard", true);
+  setHidden("app", false);
 
   if ($("userEmail")) {
     $("userEmail").textContent =
-      currentUser?.email || "";
+      currentUser.email || "";
   }
+
+  await checkAdmin();
+
+  setHidden(
+    "adminCard",
+    !currentIsAdmin
+  );
 
   await applyPendingReferral();
 
@@ -234,33 +483,48 @@ async function showApp() {
     loadTasks(),
     loadTransactions(),
     loadWithdrawals(),
-    loadAdminTasks(),
-    loadAdminWithdrawals(),
     setupReferral()
   ]);
+
+  if (currentIsAdmin) {
+    await Promise.all([
+      loadAdminSettings(),
+      loadAdminTasks(),
+      loadAdminWithdrawals()
+    ]);
+  }
 }
 
+
+// ============================================================
+// APPLY REFERRAL
+// ============================================================
 
 async function applyPendingReferral() {
   if (!currentUser) return;
 
   const ref =
-    localStorage.getItem("pending_referral");
+    localStorage.getItem(
+      "pending_referral"
+    );
 
   if (!ref) return;
 
   try {
-
     const { data, error } =
-      await sb.rpc("apply_referral", {
-        p_referral_code: ref
-      });
+      await sb.rpc(
+        "apply_referral",
+        {
+          p_referral_code: ref
+        }
+      );
 
     if (error) {
       console.error(
         "REFERRAL APPLY ERROR:",
         error
       );
+
       return;
     }
 
@@ -274,7 +538,6 @@ async function applyPendingReferral() {
     );
 
   } catch (err) {
-
     console.error(
       "REFERRAL ERROR:",
       err
@@ -282,271 +545,471 @@ async function applyPendingReferral() {
   }
 }
 
-// =========================
+
+// ============================================================
 // PROFILE
-// =========================
+// ============================================================
 
 async function loadProfile() {
   if (!currentUser) return;
 
-  const balanceBox = $("balance");
-
-  if (balanceBox) {
-    balanceBox.textContent = "Loading...";
-  }
-
-  const { data, error } = await sb
-    .from("profiles")
-    .select("coin_balance")
-    .eq("id", currentUser.id)
-    .single();
-
-  if (error) {
-    console.error("PROFILE ERROR:", error);
-
-    if (balanceBox) {
-      balanceBox.textContent = "ERROR";
-    }
-
-    alert(
-      "Profile Balance Error:\n" +
-      error.message
-    );
-
-    return;
-  }
-
-  console.log("CURRENT USER:", currentUser.id);
-  console.log("BALANCE:", data.coin_balance);
+  const balanceBox =
+    $("balance");
 
   if (balanceBox) {
     balanceBox.textContent =
-      data.coin_balance ?? 0;
+      "Loading...";
+  }
+
+  const { data, error } =
+    await sb
+      .from("profiles")
+      .select(
+        "coin_balance"
+      )
+      .eq(
+        "id",
+        currentUser.id
+      )
+      .single();
+
+  if (error) {
+    console.error(
+      "PROFILE ERROR:",
+      error
+    );
+
+    if (balanceBox) {
+      balanceBox.textContent =
+        "ERROR";
+    }
+
+    return;
+  }
+
+  if (balanceBox) {
+    balanceBox.textContent =
+      data?.coin_balance ?? 0;
   }
 }
 
 
-// =========================
+// ============================================================
 // TASKS
-// =========================
+// ============================================================
 
 async function loadTasks() {
-  const box = $("tasks");
+  const box =
+    $("tasks");
 
-  if (!box) return;
+  if (!box || !currentUser) {
+    return;
+  }
 
   box.innerHTML = "";
 
-  const { data, error } = await sb
+  const {
+    data,
+    error
+  } = await sb
     .from("tasks")
-    .select("id,title,reward_coins,video_url")
+    .select(
+      "id,title,reward_coins,video_url"
+    )
     .order("id");
 
   if (error) {
-    box.textContent = error.message;
+    console.error(
+      "TASK LOAD ERROR:",
+      error
+    );
+
+    box.textContent =
+      "❌ " + error.message;
+
     return;
   }
 
-  for (const task of data || []) {
+  if (!data?.length) {
+    box.innerHTML =
+      '<p class="muted">No tasks available.</p>';
 
-    const { data: claim } = await sb
-      .from("task_claims")
-      .select("id")
-      .eq("user_id", currentUser.id)
-      .eq("task_id", task.id)
-      .maybeSingle();
+    return;
+  }
 
-    const div = document.createElement("div");
-    div.className = "task";
-
-    // Already Claimed
-    if (claim) {
-
-      div.innerHTML = `
-        <strong>${escapeHtml(task.title)}</strong>
-
-        <div class="muted">
-          Reward: ${task.reward_coins} Coins
-        </div>
-
-        <button disabled>
-          ✅ Already Claimed
-        </button>
-      `;
-
-    }
-
-    // Video Task
-    else if (task.video_url) {
-
-      div.innerHTML = `
-        <strong>🎥 ${escapeHtml(task.title)}</strong>
-
-        <div class="muted">
-          Reward: ${task.reward_coins} Coins
-        </div>
-
-        <button class="watchBtn">
-          ▶️ Watch Video
-        </button>
-
-        <button class="claimBtn" disabled>
-          🔒 Claim after watching
-        </button>
-
-        <p class="videoMsg muted"></p>
-      `;
-
-      const watchBtn =
-        div.querySelector(".watchBtn");
-
-      const claimBtn =
-        div.querySelector(".claimBtn");
-
-      const videoMsg =
-        div.querySelector(".videoMsg");
-
-      watchBtn.onclick = () => {
-
-        window.open(
-          task.video_url,
-          "_blank"
-        );
-
-        videoMsg.textContent =
-          "🎬 Video ဖွင့်ပြီးပါပြီ။ 5 စက္ကန့်စောင့်ပါ...";
-
-        watchBtn.disabled = true;
-
-        setTimeout(() => {
-
-          videoMsg.textContent =
-            "✅ Video ကြည့်ပြီးပါပြီ။ Claim လုပ်နိုင်ပါပြီ။";
-
-          claimBtn.disabled = false;
-
-        }, 5000);
-      };
-
-      claimBtn.onclick = () => {
-        claimTask(task.id);
-      };
-
-    }
-
-    // Normal Task
-    else {
-
-      div.innerHTML = `
-        <strong>${escapeHtml(task.title)}</strong>
-
-        <div class="muted">
-          Reward: ${task.reward_coins} Coins
-        </div>
-
-        <button>
-          🎁 Claim Task
-        </button>
-      `;
-
-      div.querySelector("button").onclick = () =>
-        claimTask(task.id);
-    }
-
-    box.appendChild(div);
+  for (const task of data) {
+    await renderTask(
+      box,
+      task
+    );
   }
 }
 
-// =========================
-// CLAIM TASK
-// =========================
 
-async function claimTask(taskId) {
+// ============================================================
+// RENDER TASK
+// ============================================================
 
-  const { data, error } = await sb.rpc(
-    "claim_task",
-    {
-      p_task_id: taskId
-    }
-  );
+async function renderTask(
+  box,
+  task
+) {
+  const {
+    data: claim,
+    error
+  } = await sb
+    .from("task_claims")
+    .select("id")
+    .eq(
+      "user_id",
+      currentUser.id
+    )
+    .eq(
+      "task_id",
+      task.id
+    )
+    .maybeSingle();
 
   if (error) {
-    alert(error.message);
+    console.error(
+      "TASK CLAIM CHECK ERROR:",
+      error
+    );
+  }
+
+  const div =
+    document.createElement(
+      "div"
+    );
+
+  div.className = "task";
+
+  const reward =
+    Number(task.reward_coins) || 0;
+
+  // Already claimed
+  if (claim) {
+    div.innerHTML = `
+      <strong>
+        ${escapeHtml(task.title)}
+      </strong>
+
+      <div class="muted">
+        Reward: ${reward} Coins
+      </div>
+
+      <button disabled>
+        ✅ Already Claimed
+      </button>
+    `;
+
+    box.appendChild(div);
     return;
   }
 
-  alert(`Success! +${data} Coins`);
+  // Video task
+  if (task.video_url) {
+    div.innerHTML = `
+      <strong>
+        🎥 ${escapeHtml(task.title)}
+      </strong>
 
-  await Promise.all([
-    loadProfile(),
-    loadTransactions(),
-    loadTasks()
-  ]);
+      <div class="muted">
+        Reward: ${reward} Coins
+      </div>
+
+      <button
+        type="button"
+        class="watchBtn"
+      >
+        ▶️ Watch Video
+      </button>
+
+      <button
+        type="button"
+        class="claimBtn"
+        disabled
+      >
+        🔒 Claim after watching
+      </button>
+
+      <p class="videoMsg muted"></p>
+    `;
+
+    const watchBtn =
+      div.querySelector(
+        ".watchBtn"
+      );
+
+    const claimBtn =
+      div.querySelector(
+        ".claimBtn"
+      );
+
+    const videoMsg =
+      div.querySelector(
+        ".videoMsg"
+      );
+
+    let watched = false;
+
+    watchBtn.onclick = () => {
+      if (watched) return;
+
+      watched = true;
+
+      try {
+        window.open(
+          task.video_url,
+          "_blank",
+          "noopener,noreferrer"
+        );
+      } catch (err) {
+        console.error(
+          "VIDEO OPEN ERROR:",
+          err
+        );
+      }
+
+      watchBtn.disabled = true;
+
+      if (videoMsg) {
+        videoMsg.textContent =
+          "🎬 Video ဖွင့်ပြီးပါပြီ။ 5 စက္ကန့်စောင့်ပါ...";
+      }
+
+      setTimeout(() => {
+        if (videoMsg) {
+          videoMsg.textContent =
+            "✅ Video ကြည့်ပြီးပါပြီ။ Claim လုပ်နိုင်ပါပြီ။";
+        }
+
+        if (claimBtn) {
+          claimBtn.disabled = false;
+        }
+
+      }, 5000);
+    };
+
+    claimBtn.onclick = async () => {
+      if (claimBtn.disabled) return;
+
+      claimBtn.disabled = true;
+
+      await claimTask(
+        task.id
+      );
+    };
+
+    box.appendChild(div);
+    return;
+  }
+
+  // Normal task
+  div.innerHTML = `
+    <strong>
+      ${escapeHtml(task.title)}
+    </strong>
+
+    <div class="muted">
+      Reward: ${reward} Coins
+    </div>
+
+    <button
+      type="button"
+      class="normalClaimBtn"
+    >
+      🎁 Claim Task
+    </button>
+  `;
+
+  const button =
+    div.querySelector(
+      ".normalClaimBtn"
+    );
+
+  button.onclick = async () => {
+    if (button.disabled) return;
+
+    button.disabled = true;
+
+    await claimTask(
+      task.id
+    );
+  };
+
+  box.appendChild(div);
 }
 
 
-// =========================
+// ============================================================
+// CLAIM TASK
+// ============================================================
+
+async function claimTask(taskId) {
+  if (!currentUser) {
+    alert(
+      "Please login first."
+    );
+    return;
+  }
+
+  try {
+    const {
+      data,
+      error
+    } = await sb.rpc(
+      "claim_task",
+      {
+        p_task_id: taskId
+      }
+    );
+
+    if (error) {
+      console.error(
+        "CLAIM TASK ERROR:",
+        error
+      );
+
+      alert(
+        "❌ " + error.message
+      );
+
+      return;
+    }
+
+    alert(
+      `Success! +${data} Coins`
+    );
+
+    await Promise.all([
+      loadProfile(),
+      loadTransactions(),
+      loadTasks()
+    ]);
+
+  } catch (err) {
+    console.error(
+      "CLAIM TASK ERROR:",
+      err
+    );
+
+    alert(
+      "❌ " +
+      (err?.message ||
+        "Task claim failed.")
+    );
+  }
+}
+
+
+// ============================================================
 // TRANSACTIONS
-// =========================
+// ============================================================
 
 async function loadTransactions() {
+  const box =
+    $("transactions");
 
-  const box = $("transactions");
-
-  if (!box) return;
+  if (!box || !currentUser) {
+    return;
+  }
 
   box.innerHTML = "";
 
-  const { data, error } = await sb
+  const {
+    data,
+    error
+  } = await sb
     .from("coin_transactions")
-    .select("amount,type,created_at")
-    .eq("user_id", currentUser.id)
-    .order("created_at", {
-      ascending: false
-    })
+    .select(
+      "amount,type,created_at"
+    )
+    .eq(
+      "user_id",
+      currentUser.id
+    )
+    .order(
+      "created_at",
+      {
+        ascending: false
+      }
+    )
     .limit(30);
 
   if (error) {
-    box.textContent = error.message;
+    console.error(
+      "TRANSACTIONS ERROR:",
+      error
+    );
+
+    box.textContent =
+      "❌ " + error.message;
+
     return;
   }
 
   if (!data?.length) {
     box.innerHTML =
       '<p class="muted">No transactions yet.</p>';
+
     return;
   }
 
   for (const t of data) {
+    let label =
+      t.type || "Transaction";
 
-    let label = t.type;
-
-    if (t.type === "task_reward") {
-      label = "🎯 Task Reward";
+    if (
+      t.type ===
+      "task_reward"
+    ) {
+      label =
+        "🎯 Task Reward";
     }
 
-    if (t.type === "withdrawal_approved") {
-      label = "💳 Withdrawal Approved";
+    if (
+      t.type ===
+      "withdrawal_approved"
+    ) {
+      label =
+        "💳 Withdrawal Approved";
     }
 
-    if (t.type === "withdrawal_rejected_refund") {
-      label = "↩️ Withdrawal Refund";
+    if (
+      t.type ===
+      "withdrawal_rejected_refund"
+    ) {
+      label =
+        "↩️ Withdrawal Refund";
     }
 
-    const prefix = t.amount >= 0 ? "+" : "";
+    const amount =
+      Number(t.amount) || 0;
 
-    const div = document.createElement("div");
+    const prefix =
+      amount >= 0 ? "+" : "";
+
+    const div =
+      document.createElement(
+        "div"
+      );
 
     div.className = "tx";
 
     div.innerHTML = `
       <strong>
-        ${prefix}${t.amount} Coins
+        ${prefix}${amount} Coins
       </strong>
+
       · ${escapeHtml(label)}
 
       <div class="muted">
-        ${new Date(t.created_at).toLocaleString()}
+        ${escapeHtml(
+          formatDate(
+            t.created_at
+          )
+        )}
       </div>
     `;
 
@@ -555,62 +1018,98 @@ async function loadTransactions() {
 }
 
 
-// =========================
-// WITHDRAWALS
-// =========================
+// ============================================================
+// WITHDRAWAL HISTORY
+// ============================================================
 
 async function loadWithdrawals() {
+  const box =
+    $("withdrawals");
 
-  const box = $("withdrawals");
-
-  if (!box) return;
+  if (!box || !currentUser) {
+    return;
+  }
 
   box.innerHTML = "";
 
-  const { data, error } = await sb
+  const {
+    data,
+    error
+  } = await sb
     .from("withdrawals")
     .select(
       "id,amount,status,payment_method,created_at"
     )
-    .eq("user_id", currentUser.id)
-    .order("created_at", {
-      ascending: false
-    })
+    .eq(
+      "user_id",
+      currentUser.id
+    )
+    .order(
+      "created_at",
+      {
+        ascending: false
+      }
+    )
     .limit(20);
 
   if (error) {
-    box.textContent = error.message;
+    console.error(
+      "WITHDRAWALS ERROR:",
+      error
+    );
+
+    box.textContent =
+      "❌ " + error.message;
+
     return;
   }
 
   if (!data?.length) {
     box.innerHTML =
       '<p class="muted">No withdrawals yet.</p>';
+
     return;
   }
 
   for (const w of data) {
-
-    const div = document.createElement("div");
+    const div =
+      document.createElement(
+        "div"
+      );
 
     div.className = "tx";
 
     div.innerHTML = `
       <strong>
-        Withdrawal #${w.id}
+        Withdrawal #${escapeHtml(
+          w.id
+        )}
       </strong>
-      · ${w.amount} Coins
+
+      · ${Number(w.amount) || 0} Coins
 
       <div class="muted">
-        ${escapeHtml(w.payment_method)}
+        ${escapeHtml(
+          w.payment_method
+        )}
       </div>
 
-      <span class="withdraw-status ${escapeHtml(w.status)}">
-        ${escapeHtml(w.status)}
+      <span
+        class="withdraw-status ${escapeHtml(
+          w.status
+        )}"
+      >
+        ${escapeHtml(
+          w.status
+        )}
       </span>
 
       <div class="muted">
-        ${new Date(w.created_at).toLocaleString()}
+        ${escapeHtml(
+          formatDate(
+            w.created_at
+          )
+        )}
       </div>
     `;
 
@@ -619,167 +1118,312 @@ async function loadWithdrawals() {
 }
 
 
-// =========================
+// ============================================================
 // REQUEST WITHDRAWAL
-// =========================
+// ============================================================
 
 async function withdraw() {
+  if (!currentUser) {
+    setMessage(
+      "withdrawMsg",
+      "❌ Login ဝင်ပါ။"
+    );
+    return;
+  }
 
-  const amount = Number(
-    $("withdrawAmount")?.value
-  );
+  const amount =
+    Number(
+      $("withdrawAmount")?.value
+    );
 
   const method =
-    $("paymentMethod")?.value;
+    $("paymentMethod")?.value || "";
 
   const account =
-    $("paymentAccount")?.value.trim();
+    $("paymentAccount")
+      ?.value.trim() || "";
 
-  const msg = $("withdrawMsg");
-
-  if (msg) msg.textContent = "";
-
-  if (!amount || amount <= 0 || !account) {
-
-    if (msg) {
-      msg.textContent =
-        "Amount နဲ့ Demo account ဖြည့်ပါ။";
-    }
-
-    return;
-  }
-
-  const { data, error } = await sb.rpc(
-    "request_withdrawal",
-    {
-      p_amount: amount,
-      p_payment_method: method,
-      p_payment_account: account
-    }
+  setMessage(
+    "withdrawMsg",
+    ""
   );
 
-  if (error) {
-
-    if (msg) msg.textContent = error.message;
-
+  if (
+    !isValidPositiveInteger(
+      amount
+    )
+  ) {
+    setMessage(
+      "withdrawMsg",
+      "❌ Amount ကို မှန်မှန်ထည့်ပါ။"
+    );
     return;
   }
 
-  if (msg) {
-    msg.textContent =
-      `Withdrawal request #${data} submitted (pending).`;
+  if (!method) {
+    setMessage(
+      "withdrawMsg",
+      "❌ Payment method ရွေးပါ။"
+    );
+    return;
   }
 
-  await Promise.all([
-    loadProfile(),
-    loadTasks(),
-    loadTransactions(),
-    loadWithdrawals()
-  ]);
+  if (!account) {
+    setMessage(
+      "withdrawMsg",
+      "❌ Demo account ဖြည့်ပါ။"
+    );
+    return;
+  }
+
+  const button =
+    $("withdrawBtn");
+
+  if (button) {
+    button.disabled = true;
+  }
+
+  setMessage(
+    "withdrawMsg",
+    "🔄 Withdrawal request တင်နေပါတယ်..."
+  );
+
+  try {
+    const {
+      data,
+      error
+    } = await sb.rpc(
+      "request_withdrawal",
+      {
+        p_amount: amount,
+        p_payment_method: method,
+        p_payment_account: account
+      }
+    );
+
+    if (error) {
+      console.error(
+        "WITHDRAW ERROR:",
+        error
+      );
+
+      setMessage(
+        "withdrawMsg",
+        "❌ " + error.message
+      );
+
+      return;
+    }
+
+    setMessage(
+      "withdrawMsg",
+      `✅ Withdrawal request #${data} submitted (pending).`
+    );
+
+    if ($("withdrawAmount")) {
+      $("withdrawAmount").value =
+        "";
+    }
+
+    if ($("paymentAccount")) {
+      $("paymentAccount").value =
+        "";
+    }
+
+    await Promise.all([
+      loadProfile(),
+      loadTransactions(),
+      loadWithdrawals()
+    ]);
+
+  } catch (err) {
+    console.error(
+      "WITHDRAW ERROR:",
+      err
+    );
+
+    setMessage(
+      "withdrawMsg",
+      "❌ " +
+      (err?.message ||
+        "Withdrawal failed.")
+    );
+
+  } finally {
+    if (button) {
+      button.disabled = false;
+    }
+  }
 }
 
 
-// =========================
+// ============================================================
 // ADMIN TASKS
-// =========================
+// ============================================================
 
 async function loadAdminTasks() {
+  const box =
+    $("adminTasks");
 
-  const box = $("adminTasks");
-
-  if (!box) return;
-
-  box.innerHTML = "";
-
-  const { data: admin } = await sb
-    .from("admins")
-    .select("user_id")
-    .eq("user_id", currentUser.id)
-    .maybeSingle();
-
-  if (!admin) return;
-
-  const { data, error } = await sb
-    .from("tasks")
-    .select("id,title,reward_coins")
-    .order("id");
-
-  if (error) {
-    box.textContent = error.message;
+  if (
+    !box ||
+    !currentUser ||
+    !currentIsAdmin
+  ) {
     return;
   }
 
-  for (const task of data || []) {
+  box.innerHTML = "";
 
-    const div = document.createElement("div");
+  const {
+    data,
+    error
+  } = await sb
+    .from("tasks")
+    .select(
+      "id,title,reward_coins,video_url"
+    )
+    .order("id");
+
+  if (error) {
+    console.error(
+      "ADMIN TASK ERROR:",
+      error
+    );
+
+    box.textContent =
+      "❌ " + error.message;
+
+    return;
+  }
+
+  if (!data?.length) {
+    box.innerHTML =
+      '<p class="muted">No tasks yet.</p>';
+
+    return;
+  }
+
+  for (const task of data) {
+    const div =
+      document.createElement(
+        "div"
+      );
 
     div.className = "tx";
 
     div.innerHTML = `
       <strong>
-        #${task.id} · ${escapeHtml(task.title)}
+        #${escapeHtml(task.id)}
+        · ${escapeHtml(task.title)}
       </strong>
 
       <div class="muted">
-        Reward: ${task.reward_coins} Coins
+        Reward:
+        ${Number(task.reward_coins) || 0}
+        Coins
       </div>
 
-      <button>
+      ${
+        task.video_url
+          ? `
+            <div class="muted">
+              🎥 Video task
+            </div>
+          `
+          : ""
+      }
+
+      <button
+        type="button"
+        class="editTaskBtn"
+      >
         ✏️ Edit
       </button>
 
-      <button>
+      <button
+        type="button"
+        class="deleteTaskBtn"
+      >
         🗑️ Delete
       </button>
     `;
 
-    const buttons = div.querySelectorAll("button");
-
-    buttons[0].onclick = () =>
-      editTask(
-        task.id,
-        task.title,
-        task.reward_coins
+    const editButton =
+      div.querySelector(
+        ".editTaskBtn"
       );
 
-    buttons[1].onclick = () =>
-      deleteTask(task.id);
+    const deleteButton =
+      div.querySelector(
+        ".deleteTaskBtn"
+      );
+
+    editButton.onclick =
+      () =>
+        editTask(
+          task.id,
+          task.title,
+          task.reward_coins
+        );
+
+    deleteButton.onclick =
+      () =>
+        deleteTask(
+          task.id
+        );
 
     box.appendChild(div);
   }
 }
 
 
-// =========================
+// ============================================================
 // EDIT TASK
-// =========================
+// ============================================================
 
 async function editTask(
   id,
   oldTitle,
   oldReward
 ) {
+  if (!currentIsAdmin) {
+    alert(
+      "❌ Admin only."
+    );
+    return;
+  }
 
-  const title = prompt(
-    "Task title:",
-    oldTitle
-  );
+  const title =
+    prompt(
+      "Task title:",
+      oldTitle
+    );
 
-  if (title === null) return;
+  if (title === null) {
+    return;
+  }
 
-  const rewardInput = prompt(
-    "Reward Coins:",
-    oldReward
-  );
+  const rewardInput =
+    prompt(
+      "Reward Coins:",
+      oldReward
+    );
 
-  if (rewardInput === null) return;
+  if (rewardInput === null) {
+    return;
+  }
 
-  const reward = Number(rewardInput);
+  const reward =
+    Number(
+      rewardInput
+    );
 
   if (
     !title.trim() ||
-    !Number.isInteger(reward) ||
-    reward <= 0
+    !isValidPositiveInteger(
+      reward
+    )
   ) {
     alert(
       "Task title နဲ့ Reward Coins မှန်မှန်ထည့်ပါ။"
@@ -787,20 +1431,37 @@ async function editTask(
     return;
   }
 
-  const { error } = await sb
+  const {
+    error
+  } = await sb
     .from("tasks")
     .update({
-      title: title.trim(),
-      reward_coins: reward
+      title:
+        title.trim(),
+      reward_coins:
+        reward
     })
-    .eq("id", id);
+    .eq(
+      "id",
+      id
+    );
 
   if (error) {
-    alert(error.message);
+    console.error(
+      "EDIT TASK ERROR:",
+      error
+    );
+
+    alert(
+      "❌ " + error.message
+    );
+
     return;
   }
 
-  alert("✅ Task updated!");
+  alert(
+    "✅ Task updated!"
+  );
 
   await Promise.all([
     loadAdminTasks(),
@@ -809,27 +1470,53 @@ async function editTask(
 }
 
 
-// =========================
+// ============================================================
 // DELETE TASK
-// =========================
+// ============================================================
 
 async function deleteTask(id) {
-
-  if (!confirm(`Task #${id} ကို ဖျက်မလား?`)) {
+  if (!currentIsAdmin) {
+    alert(
+      "❌ Admin only."
+    );
     return;
   }
 
-  const { error } = await sb
+  const confirmed =
+    confirm(
+      `Task #${id} ကို ဖျက်မလား?`
+    );
+
+  if (!confirmed) {
+    return;
+  }
+
+  const {
+    error
+  } = await sb
     .from("tasks")
     .delete()
-    .eq("id", id);
+    .eq(
+      "id",
+      id
+    );
 
   if (error) {
-    alert(error.message);
+    console.error(
+      "DELETE TASK ERROR:",
+      error
+    );
+
+    alert(
+      "❌ " + error.message
+    );
+
     return;
   }
 
-  alert("🗑️ Task deleted!");
+  alert(
+    "🗑️ Task deleted!"
+  );
 
   await Promise.all([
     loadAdminTasks(),
@@ -838,51 +1525,82 @@ async function deleteTask(id) {
 }
 
 
-// =========================
+// ============================================================
 // ADD TASK
-// =========================
+// ============================================================
 
 async function addTask() {
-
-  const title =
-    $("taskTitle")?.value.trim();
-
-  const reward =
-    Number($("taskReward")?.value);
-
-  const msg = $("taskMsg");
-
-  if (!title || !reward || reward <= 0) {
-
-    if (msg) {
-      msg.textContent =
-        "Task title နဲ့ Reward Coins ဖြည့်ပါ။";
-    }
-
+  if (!currentIsAdmin) {
+    setMessage(
+      "taskMsg",
+      "❌ Admin only."
+    );
     return;
   }
 
-  const { error } = await sb
+  const title =
+    $("taskTitle")
+      ?.value.trim() || "";
+
+  const reward =
+    Number(
+      $("taskReward")?.value
+    );
+
+  if (
+    !title ||
+    !isValidPositiveInteger(
+      reward
+    )
+  ) {
+    setMessage(
+      "taskMsg",
+      "❌ Task title နဲ့ Reward Coins မှန်မှန်ဖြည့်ပါ။"
+    );
+    return;
+  }
+
+  setMessage(
+    "taskMsg",
+    "🔄 Task ထည့်နေပါတယ်..."
+  );
+
+  const {
+    error
+  } = await sb
     .from("tasks")
     .insert({
       title,
-      reward_coins: reward
+      reward_coins:
+        reward
     });
 
   if (error) {
+    console.error(
+      "ADD TASK ERROR:",
+      error
+    );
 
-    if (msg) msg.textContent = error.message;
+    setMessage(
+      "taskMsg",
+      "❌ " + error.message
+    );
 
     return;
   }
 
-  if (msg) {
-    msg.textContent =
-      "✅ Task added successfully!";
+  setMessage(
+    "taskMsg",
+    "✅ Task added successfully!"
+  );
+
+  if ($("taskTitle")) {
+    $("taskTitle").value = "";
   }
 
-  $("taskTitle").value = "";
-  $("taskReward").value = "";
+  if ($("taskReward")) {
+    $("taskReward").value = "";
+  }
 
   await Promise.all([
     loadTasks(),
@@ -891,53 +1609,53 @@ async function addTask() {
 }
 
 
-// =========================
+// ============================================================
 // ADMIN WITHDRAWALS
-// =========================
+// ============================================================
 
 async function loadAdminWithdrawals() {
+  const box =
+    $("adminWithdrawals");
 
-  const adminCard = $("adminCard");
-  const box = $("adminWithdrawals");
-
-  if (!adminCard || !box) return;
-
-  const { data: admin } = await sb
-    .from("admins")
-    .select("user_id")
-    .eq("user_id", currentUser.id)
-    .maybeSingle();
-
-  if (!admin) {
-
-    adminCard.hidden = true;
-
-    return;
-  }
-
-  adminCard.hidden = false;
-await loadAdminSettings();
-  const { data, error } = await sb
-    .from("withdrawals")
-    .select(
-      "id,user_id,amount,status,payment_method,payment_account,created_at"
-    )
-    .order("created_at", {
-      ascending: false
-    })
-    .limit(50);
-
-  if (error) {
-
-    box.textContent = error.message;
-
+  if (
+    !box ||
+    !currentUser ||
+    !currentIsAdmin
+  ) {
     return;
   }
 
   box.innerHTML = "";
 
-  if (!data?.length) {
+  const {
+    data,
+    error
+  } = await sb
+    .from("withdrawals")
+    .select(
+      "id,user_id,amount,status,payment_method,payment_account,created_at"
+    )
+    .order(
+      "created_at",
+      {
+        ascending: false
+      }
+    )
+    .limit(50);
 
+  if (error) {
+    console.error(
+      "ADMIN WITHDRAWALS ERROR:",
+      error
+    );
+
+    box.textContent =
+      "❌ " + error.message;
+
+    return;
+  }
+
+  if (!data?.length) {
     box.innerHTML =
       '<p class="muted">No withdrawals yet.</p>';
 
@@ -945,56 +1663,92 @@ await loadAdminSettings();
   }
 
   for (const w of data) {
-
-    const div = document.createElement("div");
+    const div =
+      document.createElement(
+        "div"
+      );
 
     div.className = "tx";
 
     div.innerHTML = `
       <strong>
-        Withdrawal #${w.id} · ${w.amount} Coins
+        Withdrawal #${escapeHtml(
+          w.id
+        )}
+        · ${Number(w.amount) || 0} Coins
       </strong>
 
       <div class="muted">
-        ${escapeHtml(w.payment_method)}
-        · ${escapeHtml(w.status)}
+        ${escapeHtml(
+          w.payment_method
+        )}
+        · ${escapeHtml(
+          w.status
+        )}
       </div>
 
       <div class="muted">
-        ${escapeHtml(w.payment_account)}
+        ${escapeHtml(
+          w.payment_account
+        )}
       </div>
 
       <div class="muted">
-        ${new Date(w.created_at).toLocaleString()}
+        ${escapeHtml(
+          formatDate(
+            w.created_at
+          )
+        )}
       </div>
     `;
 
-    if (w.status === "pending") {
-
+    if (
+      w.status ===
+      "pending"
+    ) {
       const approve =
-        document.createElement("button");
-
-      approve.textContent = "✅ Approve";
-
-      approve.onclick = () =>
-        updateWithdrawalStatus(
-          w.id,
-          "approved"
+        document.createElement(
+          "button"
         );
+
+      approve.type =
+        "button";
+
+      approve.textContent =
+        "✅ Approve";
+
+      approve.onclick =
+        () =>
+          updateWithdrawalStatus(
+            w.id,
+            "approved"
+          );
 
       const reject =
-        document.createElement("button");
-
-      reject.textContent = "❌ Reject";
-
-      reject.onclick = () =>
-        updateWithdrawalStatus(
-          w.id,
-          "rejected"
+        document.createElement(
+          "button"
         );
 
-      div.appendChild(approve);
-      div.appendChild(reject);
+      reject.type =
+        "button";
+
+      reject.textContent =
+        "❌ Reject";
+
+      reject.onclick =
+        () =>
+          updateWithdrawalStatus(
+            w.id,
+            "rejected"
+          );
+
+      div.appendChild(
+        approve
+      );
+
+      div.appendChild(
+        reject
+      );
     }
 
     box.appendChild(div);
@@ -1002,26 +1756,58 @@ await loadAdminSettings();
 }
 
 
-// =========================
-// UPDATE WITHDRAWAL
-// =========================
+// ============================================================
+// UPDATE WITHDRAWAL STATUS
+// ============================================================
 
 async function updateWithdrawalStatus(
   id,
   status
 ) {
+  if (!currentIsAdmin) {
+    alert(
+      "❌ Admin only."
+    );
+    return;
+  }
 
-  const { error } = await sb.rpc(
+  if (
+    status !== "approved" &&
+    status !== "rejected"
+  ) {
+    return;
+  }
+
+  const confirmed =
+    confirm(
+      `Withdrawal #${id} ကို ${status} လုပ်မလား?`
+    );
+
+  if (!confirmed) {
+    return;
+  }
+
+  const {
+    error
+  } = await sb.rpc(
     "update_withdrawal_status",
     {
-      p_withdrawal_id: id,
-      p_status: status
+      p_withdrawal_id:
+        id,
+      p_status:
+        status
     }
   );
 
   if (error) {
+    console.error(
+      "UPDATE WITHDRAWAL ERROR:",
+      error
+    );
 
-    alert(error.message);
+    alert(
+      "❌ " + error.message
+    );
 
     return;
   }
@@ -1039,53 +1825,107 @@ async function updateWithdrawalStatus(
 }
 
 
-// =========================
-// REFERRAL
-// =========================
+// ============================================================
+// REFERRAL LINK
+// ============================================================
 
 async function setupReferral() {
-  if (!currentUser) return;
-
-  const linkBox = $("referralLink");
-  const msg = $("referralMsg");
-
-  if (!linkBox) {
-    console.error("REFERRAL LINK INPUT NOT FOUND");
+  if (!currentUser) {
     return;
   }
 
-  linkBox.value = "Loading referral link...";
+  const linkBox =
+    $("referralLink");
 
-  const { data, error } = await sb
+  const msg =
+    $("referralMsg");
+
+  if (!linkBox) {
+    console.error(
+      "REFERRAL LINK INPUT NOT FOUND"
+    );
+    return;
+  }
+
+  linkBox.value =
+    "Loading referral link...";
+
+  const {
+    data,
+    error
+  } = await sb
     .from("profiles")
-    .select("referral_code")
-    .eq("id", currentUser.id)
+    .select(
+      "referral_code"
+    )
+    .eq(
+      "id",
+      currentUser.id
+    )
     .single();
 
   if (error) {
-    console.error("REFERRAL ERROR:", error);
+    console.error(
+      "REFERRAL ERROR:",
+      error
+    );
 
     if (msg) {
-      msg.textContent = "❌ Referral error: " + error.message;
+      msg.textContent =
+        "❌ Referral error: " +
+        error.message;
     }
 
     return;
   }
 
-  let code = data?.referral_code;
+  let code =
+    data?.referral_code;
 
   if (!code) {
-    code = crypto.randomUUID()
-      .replace(/-/g, "")
-      .slice(0, 8)
-      .toUpperCase();
+    try {
+      code =
+        crypto.randomUUID()
+          .replace(
+            /-/g,
+            ""
+          )
+          .slice(
+            0,
+            8
+          )
+          .toUpperCase();
 
-    const { error: updateError } = await sb
+    } catch (err) {
+      console.error(
+        "RANDOM CODE ERROR:",
+        err
+      );
+
+      code =
+        Math.random()
+          .toString(
+            36
+          )
+          .substring(
+            2,
+            10
+          )
+          .toUpperCase();
+    }
+
+    const {
+      error: updateError
+    } = await sb
       .from("profiles")
       .update({
-        referral_code: code
+        referral_code:
+          code
       })
-      .eq("id", currentUser.id);
+      .eq(
+        "id",
+        currentUser.id
+      );
 
     if (updateError) {
       console.error(
@@ -1095,7 +1935,8 @@ async function setupReferral() {
 
       if (msg) {
         msg.textContent =
-          "❌ " + updateError.message;
+          "❌ " +
+          updateError.message;
       }
 
       return;
@@ -1103,434 +1944,703 @@ async function setupReferral() {
   }
 
   const referralLink =
-    `${location.origin}${location.pathname}?ref=${encodeURIComponent(code)}`;
+    `${location.origin}${location.pathname}?ref=${encodeURIComponent(
+      code
+    )}`;
 
-  linkBox.value = referralLink;
+  linkBox.value =
+    referralLink;
 
   if (msg) {
-    msg.textContent = "✅ Your Invite Link is ready!";
+    msg.textContent =
+      "✅ Your Invite Link is ready!";
   }
 
-  console.log("MY REFERRAL CODE:", code);
-  console.log("MY REFERRAL LINK:", referralLink);
+  await loadReferralBonusText();
 }
 
-// =========================
-// REFERRAL BONUS
-// =========================
 
-async function saveReferralBonus() {
-  const input = document.getElementById("referralBonus");
-  const msg = document.getElementById("adminReferralMsg");
+// ============================================================
+// LOAD REFERRAL BONUS TEXT
+// ============================================================
 
-  if (!input || !msg) {
-    alert("Referral Bonus element မတွေ့ပါ");
+async function loadReferralBonusText() {
+  const box =
+    $("referralBonusText");
+
+  if (!box) {
     return;
   }
 
-  const bonus = Number(input.value);
-
-  if (!Number.isInteger(bonus) || bonus <= 0) {
-    msg.textContent = "Referral Bonus Coins မှန်မှန်ထည့်ပါ။";
-    return;
-  }
-
-  msg.textContent = "Saving...";
-
-  const { error } = await sb
-    .from("app_settings")
-    .update({ value: bonus })
-    .eq("key", "referral_bonus_coins");
-
-  if (error) {
-    msg.textContent = "❌ " + error.message;
-    return;
-  }
-
-  msg.textContent = `✅ Referral Bonus = ${bonus} Coins`;
-}
-
-async function logoutUser() {
-  await sb.auth.signOut();
-  location.reload();
-}
-
-async function loadAdminSettings() {
-  const input = $("adminReferralBonus");
-  const msg = $("adminSettingsMsg");
-
-  if (!input) return;
-
-  const { data, error } = await sb
+  const {
+    data,
+    error
+  } = await sb
     .from("app_settings")
     .select("value")
-    .eq("key", "referral_bonus_coins")
-    .single();
+    .eq(
+      "key",
+      "referral_bonus_coins"
+    )
+    .maybeSingle();
 
   if (error) {
-    console.error("ADMIN SETTINGS LOAD ERROR:", error);
-
-    if (msg) {
-      msg.textContent = "❌ " + error.message;
-    }
-
+    console.error(
+      "REFERRAL BONUS LOAD ERROR:",
+      error
+    );
     return;
   }
 
-  input.value = data?.value ?? 10;
+  const bonus =
+    Number(data?.value);
+
+  if (
+    Number.isInteger(
+      bonus
+    ) &&
+    bonus >= 0
+  ) {
+    box.textContent =
+      `သူငယ်ချင်းကို Invite လုပ်ပြီး ${bonus} Coins Referral Bonus ရယူပါ။`;
+  } else {
+    box.textContent =
+      "သူငယ်ချင်းကို Invite လုပ်ပြီး Referral Bonus ရယူပါ။";
+  }
 }
 
 
-async function saveAdminSettings() {
-  const input = $("adminReferralBonus");
-  const msg = $("adminSettingsMsg");
+// ============================================================
+// ADMIN SETTINGS
+// ============================================================
 
-  if (!input) return;
-
-  const value = Number(input.value);
-
-  if (!Number.isInteger(value) || value < 0) {
-    if (msg) {
-      msg.textContent =
-        "❌ Referral Bonus ကို 0 သို့မဟုတ် အထက်ထည့်ပါ။";
-    }
+async function loadAdminSettings() {
+  if (!currentIsAdmin) {
     return;
   }
 
-  if (msg) {
-    msg.textContent = "🔄 Saving...";
-  }
+  const input =
+    $("adminReferralBonus");
 
-  const { error } = await sb
-    .from("app_settings")
-    .update({
-      value: value
-    })
-    .eq("key", "referral_bonus_coins");
-
-  if (error) {
-    console.error("ADMIN SETTINGS SAVE ERROR:", error);
-
-    if (msg) {
-      msg.textContent = "❌ " + error.message;
-    }
-
-    return;
-  }
-
-  if (msg) {
-    msg.textContent =
-      "✅ Referral Bonus " + value + " Coins အဖြစ်သိမ်းပြီးပါပြီ။";
-  }
-}
-
-// =========================
-// EVENTS
-// =========================
-
-document.addEventListener("DOMContentLoaded", () => {
-
-  // ADMIN SETTINGS
-  const adminSaveSettingsBtn =
-    $("adminSaveSettingsBtn");
-
-  if (adminSaveSettingsBtn) {
-    adminSaveSettingsBtn.onclick =
-      saveAdminSettings;
-  }
-
-  // LOGIN
-  const loginBtn = $("loginBtn");
-
-  if (loginBtn) {
-    loginBtn.onclick = login;
-  }
-
-  // REGISTER
-  const signupBtn = $("signupBtn");
-
-if (signupBtn) {
-  signupBtn.onclick = signup;
-}
-
-  // FORGOT PASSWORD
-  const forgotPasswordBtn =
-    $("forgotPasswordBtn");
-
-  if (forgotPasswordBtn) {
-    forgotPasswordBtn.onclick =
-      forgotPassword;
-  }
-
-// UPDATE PASSWORD
-  const updatePasswordBtn =
-    $("updatePasswordBtn");
-
-  if (updatePasswordBtn) {
-    updatePasswordBtn.onclick =
-      updatePassword;
-  }
-
-// =========================
-// UPDATE PASSWORD
-// =========================
-
-async function updatePassword() {
-  const newPassword =
-    $("newPassword")?.value || "";
-
-  const confirmPassword =
-    $("confirmPassword")?.value || "";
+  const legacyInput =
+    $("referralBonus");
 
   const msg =
-    $("resetPasswordMsg");
+    $("adminSettingsMsg");
 
-  if (!newPassword || !confirmPassword) {
-    if (msg) {
-      msg.textContent =
-        "❌ Password အသစ် နှစ်နေရာလုံး ဖြည့်ပါ။";
-    }
+  if (!input && !legacyInput) {
     return;
   }
 
-  if (newPassword.length < 6) {
-    if (msg) {
-      msg.textContent =
-        "❌ Password အနည်းဆုံး 6 လုံးထည့်ပါ။";
-    }
+  const {
+    data,
+    error
+  } = await sb
+    .from("app_settings")
+    .select("value")
+    .eq(
+      "key",
+      "referral_bonus_coins"
+    )
+    .maybeSingle();
+
+  if (error) {
+    console.error(
+      "ADMIN SETTINGS LOAD ERROR:",
+      error
+    );
+
+    setMessage(
+      "adminSettingsMsg",
+      "❌ " + error.message
+    );
+
     return;
   }
 
-  if (newPassword !== confirmPassword) {
-    if (msg) {
-      msg.textContent =
-        "❌ Password နှစ်ခု မတူပါ။";
-    }
+  const value =
+    data?.value ?? 10;
+
+  if (input) {
+    input.value =
+      value;
+  }
+
+  if (legacyInput) {
+    legacyInput.value =
+      value;
+  }
+}
+
+
+// ============================================================
+// SAVE ADMIN SETTINGS
+// ============================================================
+
+async function saveAdminSettings() {
+  if (!currentIsAdmin) {
+    setMessage(
+      "adminSettingsMsg",
+      "❌ Admin only."
+    );
     return;
   }
 
-  if (msg) {
-    msg.textContent =
-      "🔄 Password ပြောင်းနေပါတယ်...";
+  const input =
+    $("adminReferralBonus");
+
+  if (!input) {
+    return;
+  }
+
+  const value =
+    Number(input.value);
+
+  if (
+    !Number.isInteger(
+      value
+    ) ||
+    value < 0
+  ) {
+    setMessage(
+      "adminSettingsMsg",
+      "❌ Referral Bonus ကို 0 သို့မဟုတ် အထက်ထည့်ပါ။"
+    );
+    return;
+  }
+
+  setMessage(
+    "adminSettingsMsg",
+    "🔄 Saving..."
+  );
+
+  const {
+    data: existing,
+    error: findError
+  } = await sb
+    .from("app_settings")
+    .select("key")
+    .eq(
+      "key",
+      "referral_bonus_coins"
+    )
+    .maybeSingle();
+
+  if (findError) {
+    console.error(
+      "SETTINGS FIND ERROR:",
+      findError
+    );
+
+    setMessage(
+      "adminSettingsMsg",
+      "❌ " +
+      findError.message
+    );
+
+    return;
+  }
+
+  let error = null;
+
+  if (existing) {
+    const result =
+      await sb
+        .from("app_settings")
+        .update({
+          value
+        })
+        .eq(
+          "key",
+          "referral_bonus_coins"
+        );
+
+    error =
+      result.error;
+
+  } else {
+    const result =
+      await sb
+        .from("app_settings")
+        .insert({
+          key:
+            "referral_bonus_coins",
+          value
+        });
+
+    error =
+      result.error;
+  }
+
+  if (error) {
+    console.error(
+      "ADMIN SETTINGS SAVE ERROR:",
+      error
+    );
+
+    setMessage(
+      "adminSettingsMsg",
+      "❌ " + error.message
+    );
+
+    return;
+  }
+
+  if ($("referralBonus")) {
+    $("referralBonus").value =
+      value;
+  }
+
+  setMessage(
+    "adminSettingsMsg",
+    `✅ Referral Bonus ${value} Coins အဖြစ်သိမ်းပြီးပါပြီ။`
+  );
+
+  await loadReferralBonusText();
+}
+
+
+// ============================================================
+// LEGACY SAVE REFERRAL BONUS
+// Keeps old button working
+// ============================================================
+
+async function saveReferralBonus() {
+  if (!currentIsAdmin) {
+    setMessage(
+      "adminReferralMsg",
+      "❌ Admin only."
+    );
+    return;
+  }
+
+  const input =
+    $("referralBonus");
+
+  if (!input) {
+    return;
+  }
+
+  const bonus =
+    Number(input.value);
+
+  if (
+    !Number.isInteger(
+      bonus
+    ) ||
+    bonus < 0
+  ) {
+    setMessage(
+      "adminReferralMsg",
+      "❌ Referral Bonus Coins မှန်မှန်ထည့်ပါ။"
+    );
+    return;
+  }
+
+  if ($("adminReferralBonus")) {
+    $("adminReferralBonus").value =
+      bonus;
+  }
+
+  await saveAdminSettings();
+
+  const settingsMsg =
+    $("adminSettingsMsg")
+      ?.textContent || "";
+
+  setMessage(
+    "adminReferralMsg",
+    settingsMsg ||
+      `✅ Referral Bonus = ${bonus} Coins`
+  );
+}
+
+
+// ============================================================
+// COPY REFERRAL LINK
+// ============================================================
+
+async function copyReferralLink() {
+  const linkBox =
+    $("referralLink");
+
+  const linkText =
+    $("referralLinkText");
+
+  const msg =
+    $("referralMsg");
+
+  let referralLink =
+    "";
+
+  if (
+    linkBox &&
+    linkBox.value &&
+    linkBox.value !==
+      "Loading referral link..."
+  ) {
+    referralLink =
+      linkBox.value;
+
+  } else if (
+    linkText &&
+    linkText.textContent
+  ) {
+    referralLink =
+      linkText.textContent.trim();
+  }
+
+  if (!referralLink) {
+    if (msg) {
+      msg.textContent =
+        "❌ Referral Link မတွေ့ပါ။";
+    }
+    return;
   }
 
   try {
-    const { error } =
-      await sb.auth.updateUser({
-        password: newPassword
-      });
-
-    if (error) {
-      console.error(
-        "UPDATE PASSWORD ERROR:",
-        error
+    if (
+      navigator.clipboard &&
+      window.isSecureContext
+    ) {
+      await navigator.clipboard.writeText(
+        referralLink
       );
 
       if (msg) {
         msg.textContent =
-          "❌ " + error.message;
+          "✅ Invite Link copied!";
       }
 
       return;
     }
 
-    if (msg) {
-      msg.textContent =
-        "✅ Password ပြောင်းပြီးပါပြီ။ Login ပြန်ဝင်နိုင်ပါပြီ။";
+    // Fallback for older/mobile browsers
+    if (linkBox) {
+      linkBox.focus();
+      linkBox.select();
+
+      const copied =
+        document.execCommand(
+          "copy"
+        );
+
+      if (copied) {
+        if (msg) {
+          msg.textContent =
+            "✅ Invite Link copied!";
+        }
+      } else {
+        if (msg) {
+          msg.textContent =
+            "📋 Link ကို ဖိထားပြီး Copy လုပ်ပါ။";
+        }
+      }
     }
-
-    $("newPassword").value = "";
-    $("confirmPassword").value = "";
-
-    setTimeout(async () => {
-      await sb.auth.signOut();
-
-      const resetCard =
-        $("resetPasswordCard");
-
-      const authCard =
-        $("authCard");
-
-      if (resetCard) {
-        resetCard.hidden = true;
-      }
-
-      if (authCard) {
-        authCard.hidden = false;
-      }
-
-      if ($("authMsg")) {
-        $("authMsg").textContent =
-          "✅ Password အသစ်နဲ့ Login ဝင်ပါ။";
-      }
-    }, 1500);
 
   } catch (err) {
     console.error(
-      "UPDATE PASSWORD ERROR:",
+      "COPY ERROR:",
       err
     );
 
     if (msg) {
       msg.textContent =
-        "❌ " + err.message;
+        "📋 Link ကို ဖိထားပြီး Copy လုပ်ပါ။";
     }
   }
 }
 
-// =========================
+
+// ============================================================
+// LOGOUT
+// ============================================================
+
+async function logoutUser() {
+  try {
+    await sb.auth.signOut();
+  } catch (err) {
+    console.error(
+      "LOGOUT ERROR:",
+      err
+    );
+  }
+
+  currentUser = null;
+  currentIsAdmin = false;
+
+  window.location.reload();
+}
+
+
+// ============================================================
 // PASSWORD RECOVERY
-// =========================
+// ============================================================
 
-sb.auth.onAuthStateChange((event) => {
+function showPasswordRecovery() {
+  setHidden(
+    "authCard",
+    true
+  );
 
-  if (event === "PASSWORD_RECOVERY") {
+  setHidden(
+    "app",
+    true
+  );
 
-    const authCard =
-      $("authCard");
+  setHidden(
+    "resetPasswordCard",
+    false
+  );
+}
 
-    const app =
-      $("app");
 
-    const resetCard =
-      $("resetPasswordCard");
+// ============================================================
+// AUTH STATE
+// ============================================================
 
-    if (authCard) {
-      authCard.hidden = true;
+sb.auth.onAuthStateChange(
+  async (event, session) => {
+    console.log(
+      "AUTH EVENT:",
+      event
+    );
+
+    if (
+      event ===
+      "PASSWORD_RECOVERY"
+    ) {
+      showPasswordRecovery();
+      return;
     }
 
-    if (app) {
-      app.hidden = true;
-    }
+    if (
+      session?.user
+    ) {
+      currentUser =
+        session.user;
 
-    if (resetCard) {
-      resetCard.hidden = false;
-    }
-  }
-
-});
-
-  // LOGOUT
-  const logoutBtn = $("logoutBtn");
-
-  if (logoutBtn) {
-    logoutBtn.onclick = logoutUser;
-  }
-
-  // WITHDRAW
-  const withdrawBtn = $("withdrawBtn");
-
-  if (withdrawBtn) {
-    withdrawBtn.onclick = withdraw;
-  }
-
-  // SAVE REFERRAL BONUS
-  const saveReferralBonusBtn =
-    $("saveReferralBonusBtn");
-
-  if (saveReferralBonusBtn) {
-
-    saveReferralBonusBtn.onclick =
-      saveReferralBonus;
-
-  }
-
-  // COPY REFERRAL LINK
-  const copyReferralBtn =
-    $("copyReferralBtn");
-
-  if (copyReferralBtn) {
-
-    copyReferralBtn.onclick =
-      async function () {
-
-        const linkBox =
-          $("referralLink");
-
-        const linkText =
-          $("referralLinkText");
-
-        const msg =
-          $("referralMsg");
-
-        let referralLink = "";
-
-        if (
-          linkBox &&
-          linkBox.value
-        ) {
-          referralLink =
-            linkBox.value;
-
-        } else if (
-          linkText &&
-          linkText.textContent
-        ) {
-          referralLink =
-            linkText.textContent.trim();
-        }
-
-        if (
-          !referralLink ||
-          referralLink ===
-            "Loading referral link..."
-        ) {
-
-          alert(
-            "Referral Link မတွေ့ပါ။"
-          );
-
-          return;
-        }
-
+      // Do not duplicate full loading
+      // while the initial session is being processed.
+      if (
+        event !==
+        "INITIAL_SESSION"
+      ) {
         try {
-
-          await navigator.clipboard
-            .writeText(referralLink);
-
-          if (msg) {
-            msg.textContent =
-              "✅ Invite Link copied!";
-          }
-
+          await showApp();
         } catch (err) {
-
           console.error(
-            "COPY ERROR:",
+            "AUTH SHOW APP ERROR:",
             err
           );
+        }
+      }
 
-          if (msg) {
-            msg.textContent =
-              "📋 Link ကို ဖိထားပြီး Copy လုပ်ပါ။";
+    } else if (
+      event ===
+      "SIGNED_OUT"
+    ) {
+      currentUser = null;
+      currentIsAdmin = false;
+
+      setHidden(
+        "app",
+        true
+      );
+
+      setHidden(
+        "authCard",
+        false
+      );
+
+      setHidden(
+        "resetPasswordCard",
+        true
+      );
+    }
+  }
+);
+
+
+// ============================================================
+// EVENTS
+// ============================================================
+
+document.addEventListener(
+  "DOMContentLoaded",
+  () => {
+
+    // Login
+    const loginBtn =
+      $("loginBtn");
+
+    if (loginBtn) {
+      loginBtn.onclick =
+        login;
+    }
+
+    // Register
+    const signupBtn =
+      $("signupBtn");
+
+    if (signupBtn) {
+      signupBtn.onclick =
+        signup;
+    }
+
+    // Forgot password
+    const forgotPasswordBtn =
+      $("forgotPasswordBtn");
+
+    if (forgotPasswordBtn) {
+      forgotPasswordBtn.onclick =
+        forgotPassword;
+    }
+
+    // Update password
+    const updatePasswordBtn =
+      $("updatePasswordBtn");
+
+    if (updatePasswordBtn) {
+      updatePasswordBtn.onclick =
+        updatePassword;
+    }
+
+    // Logout
+    const logoutBtn =
+      $("logoutBtn");
+
+    if (logoutBtn) {
+      logoutBtn.onclick =
+        logoutUser;
+    }
+
+    // Withdrawal
+    const withdrawBtn =
+      $("withdrawBtn");
+
+    if (withdrawBtn) {
+      withdrawBtn.onclick =
+        withdraw;
+    }
+
+    // Admin settings
+    const adminSaveSettingsBtn =
+      $("adminSaveSettingsBtn");
+
+    if (adminSaveSettingsBtn) {
+      adminSaveSettingsBtn.onclick =
+        saveAdminSettings;
+    }
+
+    // Legacy referral save button
+    const saveReferralBonusBtn =
+      $("saveReferralBonusBtn");
+
+    if (saveReferralBonusBtn) {
+      saveReferralBonusBtn.onclick =
+        saveReferralBonus;
+    }
+
+    // Copy referral
+    const copyReferralBtn =
+      $("copyReferralBtn");
+
+    if (copyReferralBtn) {
+      copyReferralBtn.onclick =
+        copyReferralLink;
+    }
+
+    // Enter key on login
+    const passwordInput =
+      $("password");
+
+    if (passwordInput) {
+      passwordInput.addEventListener(
+        "keydown",
+        (event) => {
+          if (
+            event.key ===
+            "Enter"
+          ) {
+            login();
           }
         }
-      };
+      );
+    }
+
+    // Enter key on email
+    const emailInput =
+      $("email");
+
+    if (emailInput) {
+      emailInput.addEventListener(
+        "keydown",
+        (event) => {
+          if (
+            event.key ===
+            "Enter"
+          ) {
+            login();
+          }
+        }
+      );
+    }
   }
+);
 
-});
-  
-// =========================
+
+// ============================================================
 // AUTO LOGIN
-// =========================
+// ============================================================
 
-(async () => {
-
+(async function autoLogin() {
   try {
+    const {
+      data,
+      error
+    } = await sb.auth.getSession();
 
-    const { data } =
-      await sb.auth.getSession();
+    if (error) {
+      console.error(
+        "SESSION ERROR:",
+        error
+      );
 
-    if (data.session) {
+      setMessage(
+        "authMsg",
+        "❌ " + error.message
+      );
 
+      return;
+    }
+
+    if (
+      data?.session?.user
+    ) {
       currentUser =
         data.session.user;
 
       await showApp();
+
+    } else {
+      setHidden(
+        "app",
+        true
+      );
+
+      setHidden(
+        "authCard",
+        false
+      );
+
+      setHidden(
+        "resetPasswordCard",
+        true
+      );
     }
 
   } catch (err) {
-
     console.error(
       "AUTO LOGIN ERROR:",
       err
@@ -1538,8 +2648,9 @@ sb.auth.onAuthStateChange((event) => {
 
     setMessage(
       "authMsg",
-      "❌ " + err.message
+      "❌ " +
+      (err?.message ||
+        "Session error.")
     );
   }
-
 })();
