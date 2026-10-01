@@ -9,7 +9,7 @@ const SUPABASE_URL = "https://oymkceiqfchtvcxdltor.supabase.co";
 
 // Public publishable/anon key used by the frontend.
 const SUPABASE_ANON_KEY =
-  "sb_publishable_L0T5aDk3nJ5xJ1Y2cH8vM9rQ6sP4uN7wX";
+  "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im95bWtjZWlxZmNodHZjeGRsdG9yIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODkzMjA4MjcsImV4cCI6MjEwNDg5NjgyN30.KPwCk-8OKrHxzyt746hjccSzbUHKTA1AI3LNSjk4rPg";
 
 const sb = window.supabase.createClient(
   SUPABASE_URL,
