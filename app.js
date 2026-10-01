@@ -1,6 +1,6 @@
 // ============================================================
 // Coin Win Myanmar - Supabase Frontend
-// Clean Version - Admin Settings Only
+// Clean Version - Stable Task Loading
 // ============================================================
 
 const SUPABASE_URL =
@@ -16,6 +16,10 @@ const sb = supabase.createClient(
 
 let currentUser = null;
 let currentIsAdmin = false;
+
+let appShownForUserId = null;
+let showAppPromise = null;
+let tasksLoading = false;
 
 const $ = (id) =>
   document.getElementById(id);
@@ -434,6 +438,9 @@ async function updatePassword() {
 
         currentUser = null;
         currentIsAdmin = false;
+        appShownForUserId = null;
+        showAppPromise = null;
+        tasksLoading = false;
 
         setHidden(
           "resetPasswordCard",
@@ -573,7 +580,7 @@ async function checkAdmin() {
 
 
 // ============================================================
-// SHOW APP
+// SHOW APP - SAFE SINGLE LOAD
 // ============================================================
 
 async function showApp() {
@@ -582,51 +589,82 @@ async function showApp() {
     return;
   }
 
-  setHidden(
-    "authCard",
-    true
-  );
-
-  setHidden(
-    "resetPasswordCard",
-    true
-  );
-
-  setHidden(
-    "app",
-    false
-  );
-
-  if ($("userEmail")) {
-
-    $("userEmail").textContent =
-      currentUser.email || "";
+  if (
+    appShownForUserId ===
+    currentUser.id
+  ) {
+    return;
   }
 
-  await checkAdmin();
+  if (showAppPromise) {
+    return showAppPromise;
+  }
 
-  setHidden(
-    "adminCard",
-    !currentIsAdmin
-  );
+  const userId =
+    currentUser.id;
 
-  await applyPendingReferral();
+  showAppPromise =
+    (async () => {
 
-  await Promise.all([
-    loadProfile(),
-    loadTasks(),
-    loadTransactions(),
-    loadWithdrawals(),
-    setupReferral()
-  ]);
+      setHidden(
+        "authCard",
+        true
+      );
 
-  if (currentIsAdmin) {
+      setHidden(
+        "resetPasswordCard",
+        true
+      );
 
-    await Promise.all([
-      loadAdminSettings(),
-      loadAdminTasks(),
-      loadAdminWithdrawals()
-    ]);
+      setHidden(
+        "app",
+        false
+      );
+
+      if ($("userEmail")) {
+
+        $("userEmail").textContent =
+          currentUser.email || "";
+      }
+
+      await checkAdmin();
+
+      setHidden(
+        "adminCard",
+        !currentIsAdmin
+      );
+
+      await applyPendingReferral();
+
+      await Promise.all([
+        loadProfile(),
+        loadTasks(),
+        loadTransactions(),
+        loadWithdrawals(),
+        setupReferral()
+      ]);
+
+      if (currentIsAdmin) {
+
+        await Promise.all([
+          loadAdminSettings(),
+          loadAdminTasks(),
+          loadAdminWithdrawals()
+        ]);
+      }
+
+      appShownForUserId =
+        userId;
+
+    })();
+
+  try {
+
+    await showAppPromise;
+
+  } finally {
+
+    showAppPromise = null;
   }
 }
 
@@ -707,6 +745,7 @@ async function loadProfile() {
     $("balance");
 
   if (balanceBox) {
+
     balanceBox.textContent =
       "Loading...";
   }
@@ -732,6 +771,7 @@ async function loadProfile() {
     );
 
     if (balanceBox) {
+
       balanceBox.textContent =
         "ERROR";
     }
@@ -748,7 +788,7 @@ async function loadProfile() {
 
 
 // ============================================================
-// LOAD TASKS
+// LOAD TASKS - SAFE SINGLE RENDER
 // ============================================================
 
 async function loadTasks() {
@@ -763,46 +803,61 @@ async function loadTasks() {
     return;
   }
 
-  box.innerHTML = "";
+  if (tasksLoading) {
+    return;
+  }
 
-  const {
-    data,
-    error
-  } =
-    await sb
-      .from("tasks")
-      .select(
-        "id,title,reward_coins,video_url"
-      )
-      .order("id");
+  tasksLoading = true;
 
-  if (error) {
+  try {
 
-    console.error(
-      "TASK LOAD ERROR:",
+    box.innerHTML = "";
+
+    const {
+      data,
       error
-    );
+    } =
+      await sb
+        .from("tasks")
+        .select(
+          "id,title,reward_coins,video_url"
+        )
+        .order("id");
 
-    box.textContent =
-      "❌ " + error.message;
+    if (error) {
 
-    return;
-  }
+      console.error(
+        "TASK LOAD ERROR:",
+        error
+      );
 
-  if (!data?.length) {
+      box.textContent =
+        "❌ " + error.message;
 
-    box.innerHTML =
-      '<p class="muted">No tasks available.</p>';
+      return;
+    }
 
-    return;
-  }
+    if (!data?.length) {
 
-  for (const task of data) {
+      box.innerHTML =
+        '<p class="muted">No tasks available.</p>';
 
-    await renderTask(
-      box,
-      task
-    );
+      return;
+    }
+
+    for (
+      const task of data
+    ) {
+
+      await renderTask(
+        box,
+        task
+      );
+    }
+
+  } finally {
+
+    tasksLoading = false;
   }
 }
 
@@ -969,6 +1024,7 @@ async function renderTask(
             }
 
             if (claimBtn) {
+
               claimBtn.disabled =
                 false;
             }
@@ -1185,6 +1241,7 @@ async function loadTransactions() {
       t.type ===
       "task_reward"
     ) {
+
       label =
         "🎯 Task Reward";
     }
@@ -1193,6 +1250,7 @@ async function loadTransactions() {
       t.type ===
       "withdrawal_approved"
     ) {
+
       label =
         "💳 Withdrawal Approved";
     }
@@ -1201,8 +1259,18 @@ async function loadTransactions() {
       t.type ===
       "withdrawal_rejected_refund"
     ) {
+
       label =
         "↩️ Withdrawal Refund";
+    }
+
+    if (
+      t.type ===
+      "referral_bonus"
+    ) {
+
+      label =
+        "👥 Referral Bonus";
     }
 
     const amount =
@@ -1466,11 +1534,13 @@ async function withdraw() {
     );
 
     if ($("withdrawAmount")) {
+
       $("withdrawAmount").value =
         "";
     }
 
     if ($("paymentAccount")) {
+
       $("paymentAccount").value =
         "";
     }
@@ -1500,6 +1570,7 @@ async function withdraw() {
   } finally {
 
     if (button) {
+
       button.disabled =
         false;
     }
@@ -1876,11 +1947,13 @@ async function addTask() {
   );
 
   if ($("taskTitle")) {
+
     $("taskTitle").value =
       "";
   }
 
   if ($("taskReward")) {
+
     $("taskReward").value =
       "";
   }
@@ -2005,7 +2078,6 @@ async function loadAdminWithdrawals() {
             w.id,
             "approved"
           );
-
 
       const reject =
         document.createElement(
@@ -2407,11 +2479,6 @@ async function saveAdminSettings() {
 
   try {
 
-    /*
-      First try UPDATE.
-      The row already exists in the current project.
-    */
-
     const {
       data: updatedRows,
       error: updateError
@@ -2442,10 +2509,6 @@ async function saveAdminSettings() {
 
       return;
     }
-
-    /*
-      If no row was updated, create it.
-    */
 
     if (
       !updatedRows ||
@@ -2629,6 +2692,10 @@ async function logoutUser() {
   currentUser = null;
   currentIsAdmin = false;
 
+  appShownForUserId = null;
+  showAppPromise = null;
+  tasksLoading = false;
+
   window.location.reload();
 }
 
@@ -2714,6 +2781,10 @@ sb.auth.onAuthStateChange(
       currentUser = null;
       currentIsAdmin = false;
 
+      appShownForUserId = null;
+      showAppPromise = null;
+      tasksLoading = false;
+
       setHidden(
         "app",
         true
@@ -2749,7 +2820,6 @@ document.addEventListener(
         login;
     }
 
-
     const signupBtn =
       $("signupBtn");
 
@@ -2757,7 +2827,6 @@ document.addEventListener(
       signupBtn.onclick =
         signup;
     }
-
 
     const forgotPasswordBtn =
       $("forgotPasswordBtn");
@@ -2767,7 +2836,6 @@ document.addEventListener(
         forgotPassword;
     }
 
-
     const updatePasswordBtn =
       $("updatePasswordBtn");
 
@@ -2775,7 +2843,6 @@ document.addEventListener(
       updatePasswordBtn.onclick =
         updatePassword;
     }
-
 
     const logoutBtn =
       $("logoutBtn");
@@ -2785,7 +2852,6 @@ document.addEventListener(
         logoutUser;
     }
 
-
     const withdrawBtn =
       $("withdrawBtn");
 
@@ -2793,7 +2859,6 @@ document.addEventListener(
       withdrawBtn.onclick =
         withdraw;
     }
-
 
     const adminSaveSettingsBtn =
       $("adminSaveSettingsBtn");
@@ -2804,7 +2869,6 @@ document.addEventListener(
         saveAdminSettings;
     }
 
-
     const copyReferralBtn =
       $("copyReferralBtn");
 
@@ -2814,7 +2878,6 @@ document.addEventListener(
         copyReferralLink;
     }
 
-
     const addTaskBtn =
       $("addTaskBtn");
 
@@ -2823,7 +2886,6 @@ document.addEventListener(
       addTaskBtn.onclick =
         addTask;
     }
-
 
     const passwordInput =
       $("password");
@@ -2844,7 +2906,6 @@ document.addEventListener(
         }
       );
     }
-
 
     const emailInput =
       $("email");
@@ -2945,18 +3006,40 @@ document.addEventListener(
 
 })();
 
-// =========================
+
+// ============================================================
 // PWA SERVICE WORKER
-// =========================
-if ("serviceWorker" in navigator) {
-  window.addEventListener("load", () => {
-    navigator.serviceWorker
-      .register("./service-worker.js")
-      .then(() => {
-        console.log("PWA service worker registered");
-      })
-      .catch(error => {
-        console.error("PWA service worker registration failed:", error);
-      });
-  });
-}
+// ============================================================
+
+if (
+  "serviceWorker" in navigator
+) {
+
+  window.addEventListener(
+    "load",
+    () => {
+
+      navigator.serviceWorker
+        .register(
+          "./service-worker.js"
+        )
+        .then(
+          () => {
+
+            console.log(
+              "PWA service worker registered"
+            );
+          }
+        )
+        .catch(
+          error => {
+
+            console.error(
+              "PWA service worker registration failed:",
+              error
+            );
+          }
+        );
+    }
+  );
+      }
