@@ -1,15 +1,21 @@
 /* =========================================================
    Coin Win Myanmar
    Complete app.js
+
    Video reward flow:
    Watch -> Claim once -> Auto next video
+
+   Auto-next improvement:
+   - Prepare next tab directly from Claim button click
+   - Navigate that tab only after reward succeeds
+   - Fallback to Continue to Next Video if popup is blocked
    ========================================================= */
 
 const SUPABASE_URL = "https://oymkceiqfchtvcxdltor.supabase.co";
 
 // Public publishable/anon key used by the frontend.
 const SUPABASE_ANON_KEY =
-  "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im95bWtjZWlxZmNodHZjeGRsdG9yIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODkzMjA4MjcsImV4cCI6MjEwNDg5NjgyN30.KPwCk-8OKrHxzyt746hjccSzbUHKTA1AI3LNSjk4rPg";
+  "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXAiLCJyZWYiOiJveW1rY2VpcWZjaHR2Y3hkbHRvciIsInJvbGUiOiJhbm9uIiwiaWF0IjoxNzg5MzIwODI3LCJleHAiOjIxMDQ4OTY4MjN9.KPwCk-8OKrHxzyt746hjccSzbUHKTA1AI3LNSjk4rPg";
 
 const sb = window.supabase.createClient(
   SUPABASE_URL,
@@ -42,9 +48,23 @@ const claimingTaskIds = new Set();
 const videoTimers = new Map();
 
 /*
-  Used for the next-video auto flow.
+  Used for next-video auto flow.
 */
 let autoNextVideoTaskId = null;
+
+/*
+  IMPORTANT:
+  When the user taps Claim, we try to open a blank tab
+  immediately while the browser still considers the action
+  user-initiated.
+
+  After the reward RPC succeeds, that tab is navigated
+  to the next video.
+
+  Key = current task id
+  Value = opened Window object or null
+*/
+const pendingNextVideoWindows = new Map();
 
 /* =========================================================
    HELPERS
@@ -126,9 +146,6 @@ function normalizeVideoUrl(url) {
 
   let value = String(url).trim();
 
-  /*
-    Convert common YouTube forms to a clean URL.
-  */
   try {
     const parsed = new URL(value);
 
@@ -174,11 +191,164 @@ function getNextUnclaimedVideoTask(currentTaskId) {
   return (
     sorted.find(task => {
       if (!isVideoTask(task)) return false;
-      if (Number(task.id) <= Number(currentTaskId)) return false;
-      if (claimedTaskIds.has(Number(task.id))) return false;
+
+      if (
+        Number(task.id) <= Number(currentTaskId)
+      ) {
+        return false;
+      }
+
+      if (
+        claimedTaskIds.has(Number(task.id))
+      ) {
+        return false;
+      }
+
       return true;
     }) || null
   );
+}
+
+/* =========================================================
+   PREPARE NEXT VIDEO WINDOW
+   ========================================================= */
+
+/*
+  Called directly from the user's Claim button click.
+
+  This is intentionally NOT async.
+
+  Mobile browsers are more likely to allow window.open()
+  when it happens directly inside a user click event.
+*/
+function prepareNextVideoWindow(currentTaskId) {
+  const nextTask =
+    getNextUnclaimedVideoTask(currentTaskId);
+
+  if (!nextTask) {
+    return null;
+  }
+
+  const nextUrl =
+    normalizeVideoUrl(nextTask.video_url);
+
+  if (!nextUrl) {
+    return null;
+  }
+
+  /*
+    Remove an old unused window for this task if any.
+  */
+  const oldWindow =
+    pendingNextVideoWindows.get(
+      Number(currentTaskId)
+    );
+
+  if (oldWindow && !oldWindow.closed) {
+    try {
+      oldWindow.close();
+    } catch {}
+  }
+
+  /*
+    Open blank page immediately from user click.
+  */
+  let nextWindow = null;
+
+  try {
+    nextWindow = window.open(
+      "",
+      "_blank"
+    );
+  } catch (error) {
+    console.warn(
+      "Next video popup error:",
+      error
+    );
+  }
+
+  if (nextWindow) {
+    pendingNextVideoWindows.set(
+      Number(currentTaskId),
+      nextWindow
+    );
+
+    /*
+      Keep the blank tab visually harmless while
+      the current reward is being processed.
+    */
+    try {
+      nextWindow.document.title =
+        "Coin Win Myanmar - Next Video";
+    } catch {}
+  }
+
+  return {
+    task: nextTask,
+    url: nextUrl,
+    window: nextWindow
+  };
+}
+
+/*
+  Close a prepared blank tab when the current claim fails.
+*/
+function closePreparedNextVideoWindow(
+  currentTaskId
+) {
+  const key = Number(currentTaskId);
+
+  const nextWindow =
+    pendingNextVideoWindows.get(key);
+
+  pendingNextVideoWindows.delete(key);
+
+  if (
+    nextWindow &&
+    !nextWindow.closed
+  ) {
+    try {
+      nextWindow.close();
+    } catch {}
+  }
+}
+
+/*
+  Navigate prepared tab to the next video.
+*/
+function openPreparedNextVideo(
+  currentTaskId,
+  nextInfo
+) {
+  const key = Number(currentTaskId);
+
+  const preparedWindow =
+    pendingNextVideoWindows.get(key);
+
+  pendingNextVideoWindows.delete(key);
+
+  if (
+    preparedWindow &&
+    !preparedWindow.closed
+  ) {
+    try {
+      preparedWindow.location.href =
+        nextInfo.url;
+
+      try {
+        preparedWindow.focus();
+      } catch {}
+
+      return true;
+    } catch (error) {
+      console.warn(
+        "Prepared next video navigation failed:",
+        error
+      );
+    }
+  }
+
+  return false;
 }
 
 /* =========================================================
@@ -227,6 +397,24 @@ function clearAppState() {
 
   videoTimers.clear();
   autoNextVideoTaskId = null;
+
+  /*
+    Close any prepared blank next-video tabs.
+  */
+  for (
+    const nextWindow of pendingNextVideoWindows.values()
+  ) {
+    if (
+      nextWindow &&
+      !nextWindow.closed
+    ) {
+      try {
+        nextWindow.close();
+      } catch {}
+    }
+  }
+
+  pendingNextVideoWindows.clear();
 }
 
 /* =========================================================
@@ -238,12 +426,18 @@ async function registerUser() {
   const password = $("password")?.value;
 
   if (!email || !password) {
-    setText("authMsg", "Email and password are required.");
+    setText(
+      "authMsg",
+      "Email and password are required."
+    );
     return;
   }
 
   if (password.length < 6) {
-    setText("authMsg", "Password must be at least 6 characters.");
+    setText(
+      "authMsg",
+      "Password must be at least 6 characters."
+    );
     return;
   }
 
@@ -251,24 +445,31 @@ async function registerUser() {
 
   if (btn) btn.disabled = true;
 
-  setText("authMsg", "Creating account...");
+  setText(
+    "authMsg",
+    "Creating account..."
+  );
 
   try {
-    const { data, error } = await sb.auth.signUp({
-      email,
-      password
-    });
+    const { data, error } =
+      await sb.auth.signUp({
+        email,
+        password
+      });
 
     if (error) throw error;
 
-    /*
-      Save referral code from URL/localStorage.
-    */
     saveReferralFromUrl();
 
     if (data.session) {
-      setText("authMsg", "Account created successfully.");
-      await showApp(data.session.user);
+      setText(
+        "authMsg",
+        "Account created successfully."
+      );
+
+      await showApp(
+        data.session.user
+      );
     } else {
       setText(
         "authMsg",
@@ -276,7 +477,10 @@ async function registerUser() {
       );
     }
   } catch (error) {
-    setText("authMsg", getErrorMessage(error));
+    setText(
+      "authMsg",
+      getErrorMessage(error)
+    );
   } finally {
     if (btn) btn.disabled = false;
   }
@@ -291,7 +495,10 @@ async function loginUser() {
   const password = $("password")?.value;
 
   if (!email || !password) {
-    setText("authMsg", "Email and password are required.");
+    setText(
+      "authMsg",
+      "Email and password are required."
+    );
     return;
   }
 
@@ -299,23 +506,35 @@ async function loginUser() {
 
   if (btn) btn.disabled = true;
 
-  setText("authMsg", "Logging in...");
+  setText(
+    "authMsg",
+    "Logging in..."
+  );
 
   try {
-    const { data, error } = await sb.auth.signInWithPassword({
-      email,
-      password
-    });
+    const { data, error } =
+      await sb.auth.signInWithPassword({
+        email,
+        password
+      });
 
     if (error) throw error;
 
     currentUser = data.user;
 
-    setText("authMsg", "");
+    setText(
+      "authMsg",
+      ""
+    );
 
-    await showApp(data.user);
+    await showApp(
+      data.user
+    );
   } catch (error) {
-    setText("authMsg", getErrorMessage(error));
+    setText(
+      "authMsg",
+      getErrorMessage(error)
+    );
   } finally {
     if (btn) btn.disabled = false;
   }
@@ -326,7 +545,8 @@ async function loginUser() {
    ========================================================= */
 
 async function forgotPassword() {
-  const email = $("email")?.value.trim();
+  const email =
+    $("email")?.value.trim();
 
   if (!email) {
     setText(
@@ -336,18 +556,28 @@ async function forgotPassword() {
     return;
   }
 
-  const btn = $("forgotPasswordBtn");
+  const btn =
+    $("forgotPasswordBtn");
 
   if (btn) btn.disabled = true;
 
-  setText("authMsg", "Sending password reset email...");
+  setText(
+    "authMsg",
+    "Sending password reset email..."
+  );
 
   try {
-    const redirectTo = window.location.origin + window.location.pathname;
+    const redirectTo =
+      window.location.origin +
+      window.location.pathname;
 
-    const { error } = await sb.auth.resetPasswordForEmail(email, {
-      redirectTo
-    });
+    const { error } =
+      await sb.auth.resetPasswordForEmail(
+        email,
+        {
+          redirectTo
+        }
+      );
 
     if (error) throw error;
 
@@ -356,7 +586,10 @@ async function forgotPassword() {
       "Password reset email sent. Please check your email."
     );
   } catch (error) {
-    setText("authMsg", getErrorMessage(error));
+    setText(
+      "authMsg",
+      getErrorMessage(error)
+    );
   } finally {
     if (btn) btn.disabled = false;
   }
@@ -367,10 +600,16 @@ async function forgotPassword() {
    ========================================================= */
 
 async function updatePassword() {
-  const newPassword = $("newPassword")?.value || "";
-  const confirmPassword = $("confirmPassword")?.value || "";
+  const newPassword =
+    $("newPassword")?.value || "";
 
-  if (!newPassword || !confirmPassword) {
+  const confirmPassword =
+    $("confirmPassword")?.value || "";
+
+  if (
+    !newPassword ||
+    !confirmPassword
+  ) {
     setText(
       "resetPasswordMsg",
       "Please enter the new password twice."
@@ -386,7 +625,10 @@ async function updatePassword() {
     return;
   }
 
-  if (newPassword !== confirmPassword) {
+  if (
+    newPassword !==
+    confirmPassword
+  ) {
     setText(
       "resetPasswordMsg",
       "Passwords do not match."
@@ -394,16 +636,21 @@ async function updatePassword() {
     return;
   }
 
-  const btn = $("updatePasswordBtn");
+  const btn =
+    $("updatePasswordBtn");
 
   if (btn) btn.disabled = true;
 
-  setText("resetPasswordMsg", "Updating password...");
+  setText(
+    "resetPasswordMsg",
+    "Updating password..."
+  );
 
   try {
-    const { error } = await sb.auth.updateUser({
-      password: newPassword
-    });
+    const { error } =
+      await sb.auth.updateUser({
+        password: newPassword
+      });
 
     if (error) throw error;
 
@@ -412,13 +659,21 @@ async function updatePassword() {
       "Password updated successfully. Please login again."
     );
 
-    $("newPassword").value = "";
-    $("confirmPassword").value = "";
+    if ($("newPassword")) {
+      $("newPassword").value = "";
+    }
 
-    setTimeout(async () => {
-      await sb.auth.signOut();
-      window.location.reload();
-    }, 1200);
+    if ($("confirmPassword")) {
+      $("confirmPassword").value = "";
+    }
+
+    setTimeout(
+      async () => {
+        await sb.auth.signOut();
+        window.location.reload();
+      },
+      1200
+    );
   } catch (error) {
     setText(
       "resetPasswordMsg",
@@ -435,7 +690,10 @@ async function updatePassword() {
 
 function saveReferralFromUrl() {
   try {
-    const params = new URLSearchParams(window.location.search);
+    const params =
+      new URLSearchParams(
+        window.location.search
+      );
 
     const ref =
       params.get("ref") ||
@@ -449,13 +707,18 @@ function saveReferralFromUrl() {
       );
     }
   } catch (error) {
-    console.warn("Referral URL error:", error);
+    console.warn(
+      "Referral URL error:",
+      error
+    );
   }
 }
 
 function getPendingReferral() {
   try {
-    return localStorage.getItem("pending_referral");
+    return localStorage.getItem(
+      "pending_referral"
+    );
   } catch {
     return null;
   }
@@ -463,7 +726,9 @@ function getPendingReferral() {
 
 function clearPendingReferral() {
   try {
-    localStorage.removeItem("pending_referral");
+    localStorage.removeItem(
+      "pending_referral"
+    );
   } catch {}
 }
 
@@ -474,14 +739,21 @@ function clearPendingReferral() {
 async function checkIsAdmin(userId) {
   if (!userId) return false;
 
-  const { data, error } = await sb
+  const {
+    data,
+    error
+  } = await sb
     .from("admins")
     .select("user_id")
     .eq("user_id", userId)
     .maybeSingle();
 
   if (error) {
-    console.warn("Admin check:", error);
+    console.warn(
+      "Admin check:",
+      error
+    );
+
     return false;
   }
 
@@ -493,12 +765,16 @@ async function checkIsAdmin(userId) {
    ========================================================= */
 
 async function applyPendingReferral() {
-  const code = getPendingReferral();
+  const code =
+    getPendingReferral();
 
   if (!code) return;
 
   try {
-    const { data, error } = await sb.rpc(
+    const {
+      data,
+      error
+    } = await sb.rpc(
       "apply_referral",
       {
         p_referral_code: code
@@ -506,15 +782,16 @@ async function applyPendingReferral() {
     );
 
     if (error) {
-      const msg = getErrorMessage(error);
+      const msg =
+        getErrorMessage(error);
 
-      console.warn("Referral:", msg);
+      console.warn(
+        "Referral:",
+        msg
+      );
 
-      /*
-        Permanent referral errors do not need to be retried
-        forever on every login.
-      */
-      const lower = msg.toLowerCase();
+      const lower =
+        msg.toLowerCase();
 
       if (
         lower.includes("self") ||
@@ -528,15 +805,14 @@ async function applyPendingReferral() {
       return;
     }
 
-    /*
-      0 means no referral was applied, for example
-      already referred.
-    */
     if (Number(data) >= 0) {
       clearPendingReferral();
     }
   } catch (error) {
-    console.warn("Referral apply error:", error);
+    console.warn(
+      "Referral apply error:",
+      error
+    );
   }
 }
 
@@ -546,11 +822,16 @@ async function applyPendingReferral() {
 
 async function showApp(user = null) {
   if (!user) {
-    const { data, error } = await sb.auth.getSession();
+    const {
+      data,
+      error
+    } = await sb.auth.getSession();
 
     if (error) throw error;
 
-    user = data.session?.user || null;
+    user =
+      data.session?.user ||
+      null;
   }
 
   if (!user) {
@@ -558,10 +839,6 @@ async function showApp(user = null) {
     return;
   }
 
-  /*
-    If another user logs in without a full page refresh,
-    reset the old state.
-  */
   if (
     appShownForUserId &&
     appShownForUserId !== user.id
@@ -574,7 +851,9 @@ async function showApp(user = null) {
 
   currentUser = user;
 
-  if (appShownForUserId === user.id) {
+  if (
+    appShownForUserId === user.id
+  ) {
     return;
   }
 
@@ -587,73 +866,84 @@ async function showApp(user = null) {
 
   showAppPromiseUserId = user.id;
 
-  showAppPromise = (async () => {
-    const authCard = $("authCard");
-    const app = $("app");
-    const resetCard = $("resetPasswordCard");
+  showAppPromise =
+    (async () => {
+      const authCard =
+        $("authCard");
 
-    if (authCard) authCard.hidden = true;
-    if (resetCard) resetCard.hidden = true;
-    if (app) app.hidden = false;
+      const app =
+        $("app");
 
-    setText(
-      "userEmail",
-      user.email || ""
-    );
+      const resetCard =
+        $("resetPasswordCard");
 
-    /*
-      Apply referral before loading balance.
-    */
-    await applyPendingReferral();
+      if (authCard) {
+        authCard.hidden = true;
+      }
 
-    /*
-      Admin status.
-    */
-    currentIsAdmin = await checkIsAdmin(user.id);
+      if (resetCard) {
+        resetCard.hidden = true;
+      }
 
-    const adminCard = $("adminCard");
-
-    if (adminCard) {
-      adminCard.hidden = !currentIsAdmin;
-    }
-
-    /*
-      Load main sections.
-    */
-    await Promise.all([
-      loadProfile(),
-      loadTasks(),
-      loadTransactions(),
-      loadWithdrawals(),
-      setupReferral(),
-      loadReferralBonusText()
-    ]);
-
-    /*
-      Admin-only sections.
-    */
-    if (currentIsAdmin) {
-      await Promise.all([
-        loadAdminTasks(),
-        loadAdminWithdrawals(),
-        loadAdminReferralSettings()
-      ]);
-    }
-
-    appShownForUserId = user.id;
-  })()
-    .catch(error => {
-      console.error("showApp error:", error);
+      if (app) {
+        app.hidden = false;
+      }
 
       setText(
-        "authMsg",
-        getErrorMessage(error)
+        "userEmail",
+        user.email || ""
       );
-    })
-    .finally(() => {
-      showAppPromise = null;
-      showAppPromiseUserId = null;
-    });
+
+      await applyPendingReferral();
+
+      currentIsAdmin =
+        await checkIsAdmin(
+          user.id
+        );
+
+      const adminCard =
+        $("adminCard");
+
+      if (adminCard) {
+        adminCard.hidden =
+          !currentIsAdmin;
+      }
+
+      await Promise.all([
+        loadProfile(),
+        loadTasks(),
+        loadTransactions(),
+        loadWithdrawals(),
+        setupReferral(),
+        loadReferralBonusText()
+      ]);
+
+      if (currentIsAdmin) {
+        await Promise.all([
+          loadAdminTasks(),
+          loadAdminWithdrawals(),
+          loadAdminReferralSettings()
+        ]);
+      }
+
+      appShownForUserId =
+        user.id;
+    })()
+      .catch(error => {
+        console.error(
+          "showApp error:",
+          error
+        );
+
+        setText(
+          "authMsg",
+          getErrorMessage(error)
+        );
+      })
+      .finally(() => {
+        showAppPromise = null;
+        showAppPromiseUserId = null;
+      });
 
   return showAppPromise;
 }
@@ -665,21 +955,36 @@ async function showApp(user = null) {
 async function loadProfile() {
   if (!currentUser) return;
 
-  const { data, error } = await sb
+  const {
+    data,
+    error
+  } = await sb
     .from("profiles")
-    .select("id, display_name, coin_balance, referral_code")
+    .select(
+      "id, display_name, coin_balance, referral_code"
+    )
     .eq("id", currentUser.id)
     .maybeSingle();
 
   if (error) {
-    console.error("Profile error:", error);
-    setText("balance", "0");
+    console.error(
+      "Profile error:",
+      error
+    );
+
+    setText(
+      "balance",
+      "0"
+    );
+
     return;
   }
 
   setText(
     "balance",
-    Number(data?.coin_balance || 0)
+    Number(
+      data?.coin_balance || 0
+    )
   );
 }
 
@@ -690,59 +995,92 @@ async function loadProfile() {
 async function loadTasks() {
   if (!currentUser) return;
 
-  const tasksBox = $("tasks");
+  const tasksBox =
+    $("tasks");
 
   if (!tasksBox) return;
 
-  tasksBox.innerHTML = "<p>Loading tasks...</p>";
+  tasksBox.innerHTML =
+    "<p>Loading tasks...</p>";
 
-  const { data: tasks, error: tasksError } = await sb
+  const {
+    data: tasks,
+    error: tasksError
+  } = await sb
     .from("tasks")
-    .select("id, title, reward_coins, video_url")
-    .order("id", { ascending: true });
+    .select(
+      "id, title, reward_coins, video_url"
+    )
+    .order("id", {
+      ascending: true
+    });
 
   if (tasksError) {
     tasksBox.innerHTML =
       `<p class="msg">${escapeHtml(
         getErrorMessage(tasksError)
       )}</p>`;
+
     return;
   }
 
-  currentTasks = tasks || [];
+  currentTasks =
+    tasks || [];
 
-  const { data: claims, error: claimsError } = await sb
+  const {
+    data: claims,
+    error: claimsError
+  } = await sb
     .from("task_claims")
     .select("task_id")
-    .eq("user_id", currentUser.id);
+    .eq(
+      "user_id",
+      currentUser.id
+    );
 
   if (claimsError) {
-    console.warn("Task claims:", claimsError);
+    console.warn(
+      "Task claims:",
+      claimsError
+    );
   }
 
-  claimedTaskIds = new Set(
-    (claims || []).map(row => Number(row.task_id))
-  );
+  claimedTaskIds =
+    new Set(
+      (claims || []).map(
+        row => Number(row.task_id)
+      )
+    );
 
   tasksBox.innerHTML = "";
 
   if (!currentTasks.length) {
     tasksBox.innerHTML =
       "<p class=\"muted\">No tasks available.</p>";
+
     return;
   }
 
-  currentTasks.forEach(task => {
-    const box = document.createElement("div");
+  currentTasks.forEach(
+    task => {
+      const box =
+        document.createElement(
+          "div"
+        );
 
-    renderTask(
-      box,
-      task,
-      claimedTaskIds.has(Number(task.id))
-    );
+      renderTask(
+        box,
+        task,
+        claimedTaskIds.has(
+          Number(task.id)
+        )
+      );
 
-    tasksBox.appendChild(box);
-  });
+      tasksBox.appendChild(
+        box
+      );
+    }
+  );
 }
 
 /* =========================================================
@@ -754,23 +1092,52 @@ function renderTask(
   task,
   alreadyClaimed = false
 ) {
-  const taskId = Number(task.id);
-  const reward = Number(task.reward_coins || 0);
-  const video = isVideoTask(task);
+  const taskId =
+    Number(task.id);
 
-  box.className = "task-item";
-  box.style.marginBottom = "14px";
+  const reward =
+    Number(
+      task.reward_coins || 0
+    );
 
-  const title = escapeHtml(task.title || "Task");
-  const videoUrl = normalizeVideoUrl(task.video_url);
+  const video =
+    isVideoTask(task);
+
+  box.className =
+    "task-item";
+
+  box.style.marginBottom =
+    "14px";
+
+  const title =
+    escapeHtml(
+      task.title ||
+      "Task"
+    );
+
+  const videoUrl =
+    normalizeVideoUrl(
+      task.video_url
+    );
 
   if (alreadyClaimed) {
     box.innerHTML = `
-      <div style="padding:12px;border:1px solid #ddd;border-radius:10px;">
+      <div
+        style="
+          padding:12px;
+          border:1px solid #ddd;
+          border-radius:10px;
+        "
+      >
         <strong>${title}</strong>
-        <div class="muted" style="margin-top:4px;">
+
+        <div
+          class="muted"
+          style="margin-top:4px;"
+        >
           Reward: ${reward} Coins
         </div>
+
         <button
           type="button"
           disabled
@@ -786,11 +1153,22 @@ function renderTask(
 
   if (!video) {
     box.innerHTML = `
-      <div style="padding:12px;border:1px solid #ddd;border-radius:10px;">
+      <div
+        style="
+          padding:12px;
+          border:1px solid #ddd;
+          border-radius:10px;
+        "
+      >
         <strong>${title}</strong>
-        <div class="muted" style="margin-top:4px;">
+
+        <div
+          class="muted"
+          style="margin-top:4px;"
+        >
           Reward: ${reward} Coins
         </div>
+
         <button
           type="button"
           class="claim-task-btn"
@@ -802,9 +1180,10 @@ function renderTask(
       </div>
     `;
 
-    const claimBtn = box.querySelector(
-      ".claim-task-btn"
-    );
+    const claimBtn =
+      box.querySelector(
+        ".claim-task-btn"
+      );
 
     claimBtn?.addEventListener(
       "click",
@@ -827,7 +1206,10 @@ function renderTask(
     >
       <strong>${title}</strong>
 
-      <div class="muted" style="margin-top:4px;">
+      <div
+        class="muted"
+        style="margin-top:4px;"
+      >
         Reward: ${reward} Coins
       </div>
 
@@ -860,35 +1242,40 @@ function renderTask(
     </div>
   `;
 
-  const watchBtn = box.querySelector(
-    ".watch-video-btn"
-  );
+  const watchBtn =
+    box.querySelector(
+      ".watch-video-btn"
+    );
 
-  const claimBtn = box.querySelector(
-    ".claim-video-btn"
-  );
+  const claimBtn =
+    box.querySelector(
+      ".claim-video-btn"
+    );
 
-  const status = box.querySelector(
-    ".video-status"
-  );
+  const status =
+    box.querySelector(
+      ".video-status"
+    );
 
   watchBtn?.addEventListener(
     "click",
-    () => startVideoWatch(
-      task,
-      watchBtn,
-      claimBtn,
-      status
-    )
+    () =>
+      startVideoWatch(
+        task,
+        watchBtn,
+        claimBtn,
+        status
+      )
   );
 
   claimBtn?.addEventListener(
     "click",
-    () => claimVideoTask(
-      task,
-      claimBtn,
-      status
-    )
+    () =>
+      claimVideoTask(
+        task,
+        claimBtn,
+        status
+      )
   );
 }
 
@@ -902,8 +1289,13 @@ function startVideoWatch(
   claimBtn,
   status
 ) {
-  const taskId = Number(task.id);
-  const videoUrl = normalizeVideoUrl(task.video_url);
+  const taskId =
+    Number(task.id);
+
+  const videoUrl =
+    normalizeVideoUrl(
+      task.video_url
+    );
 
   if (!videoUrl) {
     if (status) {
@@ -914,10 +1306,9 @@ function startVideoWatch(
     return;
   }
 
-  /*
-    Stop an old timer for this task.
-  */
-  if (videoTimers.has(taskId)) {
+  if (
+    videoTimers.has(taskId)
+  ) {
     clearTimeout(
       videoTimers.get(taskId)
     );
@@ -928,10 +1319,13 @@ function startVideoWatch(
   */
   const WATCH_SECONDS = 5;
 
-  watchBtn.disabled = true;
+  watchBtn.disabled =
+    true;
 
   if (claimBtn) {
-    claimBtn.disabled = true;
+    claimBtn.disabled =
+      true;
+
     claimBtn.textContent =
       `🔒 Watch ${WATCH_SECONDS}s first`;
   }
@@ -944,14 +1338,23 @@ function startVideoWatch(
   /*
     Open video.
   */
-  const opened = window.open(
-    videoUrl,
-    "_blank",
-    "noopener,noreferrer"
-  );
+  let opened = null;
+
+  try {
+    opened = window.open(
+      videoUrl,
+      "_blank",
+      "noopener,noreferrer"
+    );
+  } catch (error) {
+    console.warn(
+      "Video popup:",
+      error
+    );
+  }
 
   /*
-    If popup is blocked, give a direct fallback.
+    Popup blocked fallback.
   */
   if (!opened) {
     if (status) {
@@ -965,54 +1368,85 @@ function startVideoWatch(
   /*
     Unlock claim after 5 seconds.
   */
-  const timer = setTimeout(() => {
-    videoTimers.delete(taskId);
+  const timer =
+    setTimeout(
+      () => {
+        videoTimers.delete(
+          taskId
+        );
 
-    /*
-      Do not unlock if task somehow became claimed.
-    */
-    if (claimedTaskIds.has(taskId)) {
-      return;
-    }
+        if (
+          claimedTaskIds.has(
+            taskId
+          )
+        ) {
+          return;
+        }
 
-    if (claimBtn) {
-      claimBtn.disabled = false;
-      claimBtn.textContent =
-        `🎁 Claim +${Number(task.reward_coins || 0)} Coins`;
-    }
+        if (claimBtn) {
+          claimBtn.disabled =
+            false;
 
-    if (status) {
-      status.textContent =
-        "✅ Watch step completed. You can claim your Coins.";
-    }
+          claimBtn.textContent =
+            `🎁 Claim +${Number(
+              task.reward_coins || 0
+            )} Coins`;
+        }
 
-    watchBtn.disabled = false;
-  }, WATCH_SECONDS * 1000);
+        if (status) {
+          status.textContent =
+            "✅ Watch step completed. You can claim your Coins.";
+        }
 
-  videoTimers.set(taskId, timer);
+        watchBtn.disabled =
+          false;
+      },
+      WATCH_SECONDS * 1000
+    );
+
+  videoTimers.set(
+    taskId,
+    timer
+  );
 }
 
 /* =========================================================
    CLAIM NORMAL TASK
    ========================================================= */
 
-async function claimTask(taskId) {
+async function claimTask(
+  taskId
+) {
   if (!currentUser) return;
 
-  taskId = Number(taskId);
+  taskId =
+    Number(taskId);
 
-  if (claimingTaskIds.has(taskId)) {
+  if (
+    claimingTaskIds.has(
+      taskId
+    )
+  ) {
     return;
   }
 
-  if (claimedTaskIds.has(taskId)) {
+  if (
+    claimedTaskIds.has(
+      taskId
+    )
+  ) {
     return;
   }
 
-  claimingTaskIds.add(taskId);
+  claimingTaskIds.add(
+    taskId
+  );
 
   try {
-    const { data, error } = await sb.rpc(
+    const {
+      data,
+      error
+    } = await sb.rpc(
       "claim_task",
       {
         p_task_id: taskId
@@ -1021,9 +1455,12 @@ async function claimTask(taskId) {
 
     if (error) throw error;
 
-    const coins = Number(data || 0);
+    const coins =
+      Number(data || 0);
 
-    claimedTaskIds.add(taskId);
+    claimedTaskIds.add(
+      taskId
+    );
 
     alert(
       `Success! +${coins} Coins`
@@ -1033,20 +1470,14 @@ async function claimTask(taskId) {
     await loadTasks();
     await loadTransactions();
 
-    /*
-      If this was a video task, auto-next.
-    */
-    const task = getTaskById(taskId);
-
-    if (isVideoTask(task)) {
-      await autoOpenNextVideo(taskId);
-    }
   } catch (error) {
     alert(
       getErrorMessage(error)
     );
   } finally {
-    claimingTaskIds.delete(taskId);
+    claimingTaskIds.delete(
+      taskId
+    );
   }
 }
 
@@ -1061,21 +1492,53 @@ async function claimVideoTask(
 ) {
   if (!currentUser) return;
 
-  const taskId = Number(task.id);
+  const taskId =
+    Number(task.id);
 
-  if (claimingTaskIds.has(taskId)) {
+  if (
+    claimingTaskIds.has(
+      taskId
+    )
+  ) {
     return;
   }
 
-  if (claimedTaskIds.has(taskId)) {
+  if (
+    claimedTaskIds.has(
+      taskId
+    )
+  ) {
     return;
   }
 
-  claimingTaskIds.add(taskId);
+  /*
+    =======================================================
+    IMPORTANT AUTO-NEXT CHANGE
+    =======================================================
+
+    This happens BEFORE the first await.
+
+    Therefore the browser still knows that this operation
+    came directly from the user's Claim button click.
+
+    We prepare the next tab now, then navigate it only
+    after the current reward is successfully claimed.
+  */
+  const nextVideoInfo =
+    prepareNextVideoWindow(
+      taskId
+    );
+
+  claimingTaskIds.add(
+    taskId
+  );
 
   if (claimBtn) {
-    claimBtn.disabled = true;
-    claimBtn.textContent = "⏳ Claiming...";
+    claimBtn.disabled =
+      true;
+
+    claimBtn.textContent =
+      "⏳ Claiming...";
   }
 
   if (status) {
@@ -1086,29 +1549,38 @@ async function claimVideoTask(
   try {
     /*
       Server-side RPC is the final authority.
-      This prevents duplicate rewards.
+
+      Database unique constraint / RPC prevents duplicate
+      rewards for the same user + task.
     */
-    const { data, error } = await sb.rpc(
+    const {
+      data,
+      error
+    } = await sb.rpc(
       "claim_task",
       {
         p_task_id: taskId
       }
     );
 
-    if (error) throw error;
+    if (error) {
+      throw error;
+    }
 
-    const coins = Number(data || 0);
+    const coins =
+      Number(data || 0);
 
     /*
       Mark locally as claimed.
     */
-    claimedTaskIds.add(taskId);
+    claimedTaskIds.add(
+      taskId
+    );
 
-    /*
-      Disable current task permanently in this session.
-    */
     if (claimBtn) {
-      claimBtn.disabled = true;
+      claimBtn.disabled =
+        true;
+
       claimBtn.textContent =
         "✅ Already Claimed";
     }
@@ -1122,31 +1594,54 @@ async function claimVideoTask(
       `Success! +${coins} Coins`
     );
 
+    /*
+      Refresh balance/tasks/history.
+    */
     await loadProfile();
     await loadTasks();
     await loadTransactions();
 
     /*
       IMPORTANT:
-      Auto-next happens ONLY after the current video
-      has successfully received its one-time reward.
+      Auto-next happens ONLY after the current task
+      has successfully received its reward.
     */
-    await autoOpenNextVideo(taskId);
+    await autoOpenNextVideo(
+      taskId,
+      nextVideoInfo
+    );
 
   } catch (error) {
-    const message = getErrorMessage(error);
+    const message =
+      getErrorMessage(error);
+
+    /*
+      Current claim failed.
+      Close any prepared blank next tab.
+    */
+    closePreparedNextVideoWindow(
+      taskId
+    );
 
     /*
       If database says already claimed,
       mark it locally too.
     */
     if (
-      message.toLowerCase().includes("already claimed")
+      message
+        .toLowerCase()
+        .includes(
+          "already claimed"
+        )
     ) {
-      claimedTaskIds.add(taskId);
+      claimedTaskIds.add(
+        taskId
+      );
 
       if (claimBtn) {
-        claimBtn.disabled = true;
+        claimBtn.disabled =
+          true;
+
         claimBtn.textContent =
           "✅ Already Claimed";
       }
@@ -1155,9 +1650,12 @@ async function claimVideoTask(
         status.textContent =
           "This video has already been claimed.";
       }
+
     } else {
       if (claimBtn) {
-        claimBtn.disabled = false;
+        claimBtn.disabled =
+          false;
+
         claimBtn.textContent =
           `🎁 Claim +${Number(
             task.reward_coins || 0
@@ -1171,8 +1669,11 @@ async function claimVideoTask(
 
       alert(message);
     }
+
   } finally {
-    claimingTaskIds.delete(taskId);
+    claimingTaskIds.delete(
+      taskId
+    );
   }
 }
 
@@ -1180,12 +1681,25 @@ async function claimVideoTask(
    AUTO NEXT VIDEO
    ========================================================= */
 
-async function autoOpenNextVideo(currentTaskId) {
+async function autoOpenNextVideo(
+  currentTaskId,
+  preparedInfo = null
+) {
+  /*
+    If the prepared next-video information exists,
+    use it.
+
+    Otherwise calculate it again as a fallback.
+  */
   const nextTask =
-    getNextUnclaimedVideoTask(currentTaskId);
+    preparedInfo?.task ||
+    getNextUnclaimedVideoTask(
+      currentTaskId
+    );
 
   if (!nextTask) {
-    autoNextVideoTaskId = null;
+    autoNextVideoTaskId =
+      null;
 
     alert(
       "🎉 You completed all available video tasks!"
@@ -1194,76 +1708,86 @@ async function autoOpenNextVideo(currentTaskId) {
     return;
   }
 
-  autoNextVideoTaskId = Number(nextTask.id);
+  autoNextVideoTaskId =
+    Number(nextTask.id);
 
   const nextUrl =
-    normalizeVideoUrl(nextTask.video_url);
+    normalizeVideoUrl(
+      nextTask.video_url
+    );
 
   if (!nextUrl) {
     return;
   }
 
   /*
-    Small delay so the balance/task UI has time to refresh.
+    Try to navigate the tab that was opened directly
+    from the Claim click.
   */
-  await new Promise(
-    resolve => setTimeout(resolve, 700)
-  );
-
-  /*
-    Try opening the next video automatically.
-    Mobile browsers may block this because it is no longer
-    directly inside the original tap event.
-  */
-  const opened = window.open(
-    nextUrl,
-    "_blank",
-    "noopener,noreferrer"
-  );
-
-  if (opened) {
-    /*
-      Scroll to the next task in our page.
-    */
-    setTimeout(() => {
-      const nextButton = document.querySelector(
-        `.watch-video-btn[data-task-id="${Number(
-          nextTask.id
-        )}"]`
+  if (preparedInfo?.window) {
+    const opened =
+      openPreparedNextVideo(
+        currentTaskId,
+        preparedInfo
       );
 
-      nextButton?.scrollIntoView({
-        behavior: "smooth",
-        block: "center"
-      });
-    }, 300);
+    if (opened) {
+      /*
+        Give the current page a moment to refresh,
+        then scroll to the next task.
+      */
+      setTimeout(
+        () => {
+          const nextButton =
+            document.querySelector(
+              `.watch-video-btn[data-task-id="${Number(
+                nextTask.id
+              )}"]`
+            );
 
-    return;
+          nextButton?.scrollIntoView({
+            behavior: "smooth",
+            block: "center"
+          });
+        },
+        300
+      );
+
+      return;
+    }
   }
 
   /*
-    Popup was blocked.
-    Show a clear fallback on the next task.
+    Fallback:
+    If popup was blocked, do NOT keep trying window.open()
+    after an async delay.
+
+    Instead show Continue to Next Video.
   */
-  setTimeout(() => {
-    const nextButton = document.querySelector(
-      `.watch-video-btn[data-task-id="${Number(
-        nextTask.id
-      )}"]`
-    );
+  setTimeout(
+    () => {
+      const nextButton =
+        document.querySelector(
+          `.watch-video-btn[data-task-id="${Number(
+            nextTask.id
+          )}"]`
+        );
 
-    if (nextButton) {
-      nextButton.textContent =
-        "▶️ Continue to Next Video";
+      if (nextButton) {
+        nextButton.textContent =
+          "▶️ Continue to Next Video";
 
-      nextButton.style.fontWeight = "bold";
+        nextButton.style.fontWeight =
+          "bold";
 
-      nextButton.scrollIntoView({
-        behavior: "smooth",
-        block: "center"
-      });
-    }
-  }, 300);
+        nextButton.scrollIntoView({
+          behavior: "smooth",
+          block: "center"
+        });
+      }
+    },
+    300
+  );
 }
 
 /* =========================================================
@@ -1273,19 +1797,26 @@ async function autoOpenNextVideo(currentTaskId) {
 async function loadTransactions() {
   if (!currentUser) return;
 
-  const box = $("transactions");
+  const box =
+    $("transactions");
 
   if (!box) return;
 
   box.innerHTML =
     "<p>Loading transactions...</p>";
 
-  const { data, error } = await sb
+  const {
+    data,
+    error
+  } = await sb
     .from("coin_transactions")
     .select(
       "user_id, task_id, amount, type, created_at"
     )
-    .eq("user_id", currentUser.id)
+    .eq(
+      "user_id",
+      currentUser.id
+    )
     .order("created_at", {
       ascending: false
     })
@@ -1296,48 +1827,62 @@ async function loadTransactions() {
       `<p class="msg">${escapeHtml(
         getErrorMessage(error)
       )}</p>`;
+
     return;
   }
 
   if (!data?.length) {
     box.innerHTML =
       "<p class=\"muted\">No transactions yet.</p>";
+
     return;
   }
 
-  box.innerHTML = data.map(row => {
-    const amount = Number(row.amount || 0);
+  box.innerHTML =
+    data
+      .map(row => {
+        const amount =
+          Number(
+            row.amount || 0
+          );
 
-    const sign =
-      amount > 0 ? "+" : "";
+        const sign =
+          amount > 0
+            ? "+"
+            : "";
 
-    return `
-      <div
-        style="
-          padding:10px 0;
-          border-bottom:1px solid #ddd;
-        "
-      >
-        <strong>
-          ${escapeHtml(
-            formatType(row.type)
-          )}
-        </strong>
+        return `
+          <div
+            style="
+              padding:10px 0;
+              border-bottom:1px solid #ddd;
+            "
+          >
+            <strong>
+              ${escapeHtml(
+                formatType(
+                  row.type
+                )
+              )}
+            </strong>
 
-        <div>
-          <span>
-            ${sign}${amount} Coins
-          </span>
-        </div>
+            <div>
+              <span>
+                ${sign}${amount} Coins
+              </span>
+            </div>
 
-        <small class="muted">
-          ${escapeHtml(
-            formatDate(row.created_at)
-          )}
-        </small>
-      </div>
-    `;
-  }).join("");
+            <small class="muted">
+              ${escapeHtml(
+                formatDate(
+                  row.created_at
+                )
+              )}
+            </small>
+          </div>
+        `;
+      })
+      .join("");
 }
 
 /* =========================================================
@@ -1347,9 +1892,10 @@ async function loadTransactions() {
 async function requestWithdrawal() {
   if (!currentUser) return;
 
-  const amount = Number(
-    $("withdrawAmount")?.value
-  );
+  const amount =
+    Number(
+      $("withdrawAmount")?.value
+    );
 
   const paymentMethod =
     $("paymentMethod")?.value;
@@ -1357,11 +1903,15 @@ async function requestWithdrawal() {
   const paymentAccount =
     $("paymentAccount")?.value.trim();
 
-  if (!Number.isInteger(amount) || amount <= 0) {
+  if (
+    !Number.isInteger(amount) ||
+    amount <= 0
+  ) {
     setText(
       "withdrawMsg",
       "Enter a valid coin amount."
     );
+
     return;
   }
 
@@ -1370,6 +1920,7 @@ async function requestWithdrawal() {
       "withdrawMsg",
       "Select a payment method."
     );
+
     return;
   }
 
@@ -1378,12 +1929,17 @@ async function requestWithdrawal() {
       "withdrawMsg",
       "Enter demo account / phone."
     );
+
     return;
   }
 
-  const btn = $("withdrawBtn");
+  const btn =
+    $("withdrawBtn");
 
-  if (btn) btn.disabled = true;
+  if (btn) {
+    btn.disabled =
+      true;
+  }
 
   setText(
     "withdrawMsg",
@@ -1391,12 +1947,17 @@ async function requestWithdrawal() {
   );
 
   try {
-    const { data, error } = await sb.rpc(
+    const {
+      data,
+      error
+    } = await sb.rpc(
       "request_withdrawal",
       {
         p_amount: amount,
-        p_payment_method: paymentMethod,
-        p_payment_account: paymentAccount
+        p_payment_method:
+          paymentMethod,
+        p_payment_account:
+          paymentAccount
       }
     );
 
@@ -1408,11 +1969,13 @@ async function requestWithdrawal() {
     );
 
     if ($("withdrawAmount")) {
-      $("withdrawAmount").value = "";
+      $("withdrawAmount").value =
+        "";
     }
 
     if ($("paymentAccount")) {
-      $("paymentAccount").value = "";
+      $("paymentAccount").value =
+        "";
     }
 
     await loadProfile();
@@ -1425,7 +1988,10 @@ async function requestWithdrawal() {
       getErrorMessage(error)
     );
   } finally {
-    if (btn) btn.disabled = false;
+    if (btn) {
+      btn.disabled =
+        false;
+    }
   }
 }
 
@@ -1436,19 +2002,26 @@ async function requestWithdrawal() {
 async function loadWithdrawals() {
   if (!currentUser) return;
 
-  const box = $("withdrawals");
+  const box =
+    $("withdrawals");
 
   if (!box) return;
 
   box.innerHTML =
     "<p>Loading withdrawals...</p>";
 
-  const { data, error } = await sb
+  const {
+    data,
+    error
+  } = await sb
     .from("withdrawals")
     .select(
       "id, amount, status, created_at, payment_method, payment_account"
     )
-    .eq("user_id", currentUser.id)
+    .eq(
+      "user_id",
+      currentUser.id
+    )
     .order("created_at", {
       ascending: false
     })
@@ -1459,54 +2032,67 @@ async function loadWithdrawals() {
       `<p class="msg">${escapeHtml(
         getErrorMessage(error)
       )}</p>`;
+
     return;
   }
 
   if (!data?.length) {
     box.innerHTML =
       "<p class=\"muted\">No withdrawal requests yet.</p>";
+
     return;
   }
 
-  box.innerHTML = data.map(row => {
-    return `
-      <div
-        style="
-          padding:10px 0;
-          border-bottom:1px solid #ddd;
-        "
-      >
-        <strong>
-          Request #${escapeHtml(row.id)}
-        </strong>
+  box.innerHTML =
+    data
+      .map(row => {
+        return `
+          <div
+            style="
+              padding:10px 0;
+              border-bottom:1px solid #ddd;
+            "
+          >
+            <strong>
+              Request #${escapeHtml(
+                row.id
+              )}
+            </strong>
 
-        <div>
-          ${Number(row.amount || 0)} Coins
-        </div>
+            <div>
+              ${Number(
+                row.amount || 0
+              )} Coins
+            </div>
 
-        <div>
-          ${escapeHtml(
-            row.payment_method || "-"
-          )}
-        </div>
+            <div>
+              ${escapeHtml(
+                row.payment_method ||
+                "-"
+              )}
+            </div>
 
-        <div>
-          Status:
-          <strong>
-            ${escapeHtml(
-              row.status || "-"
-            )}
-          </strong>
-        </div>
+            <div>
+              Status:
+              <strong>
+                ${escapeHtml(
+                  row.status ||
+                  "-"
+                )}
+              </strong>
+            </div>
 
-        <small class="muted">
-          ${escapeHtml(
-            formatDate(row.created_at)
-          )}
-        </small>
-      </div>
-    `;
-  }).join("");
+            <small class="muted">
+              ${escapeHtml(
+                formatDate(
+                  row.created_at
+                )
+              )}
+            </small>
+          </div>
+        `;
+      })
+      .join("");
 }
 
 /* =========================================================
@@ -1516,16 +2102,24 @@ async function loadWithdrawals() {
 async function setupReferral() {
   if (!currentUser) return;
 
-  const input = $("referralLink");
+  const input =
+    $("referralLink");
 
   if (!input) return;
 
-  input.value = "Loading referral link...";
+  input.value =
+    "Loading referral link...";
 
-  const { data, error } = await sb
+  const {
+    data,
+    error
+  } = await sb
     .from("profiles")
     .select("referral_code")
-    .eq("id", currentUser.id)
+    .eq(
+      "id",
+      currentUser.id
+    )
     .maybeSingle();
 
   if (error) {
@@ -1534,18 +2128,16 @@ async function setupReferral() {
       error
     );
 
-    input.value = "";
+    input.value =
+      "";
 
     return;
   }
 
-  let code =
-    data?.referral_code || "";
+  const code =
+    data?.referral_code ||
+    "";
 
-  /*
-    If a referral code already exists,
-    generate the share URL.
-  */
   if (code) {
     const baseUrl =
       window.location.origin +
@@ -1559,12 +2151,8 @@ async function setupReferral() {
     return;
   }
 
-  /*
-    Current database has RLS protecting profiles.
-    Do not silently claim that a code was created
-    if the backend rejected the update.
-  */
-  input.value = "";
+  input.value =
+    "";
 
   setText(
     "referralMsg",
@@ -1577,14 +2165,23 @@ async function setupReferral() {
    ========================================================= */
 
 async function loadReferralBonusText() {
-  const text = $("referralBonusText");
+  const text =
+    $("referralBonusText");
 
   if (!text) return;
 
-  const { data, error } = await sb
+  const {
+    data,
+    error
+  } = await sb
     .from("app_settings")
-    .select("key, value")
-    .eq("key", "referral_bonus_coins")
+    .select(
+      "key, value"
+    )
+    .eq(
+      "key",
+      "referral_bonus_coins"
+    )
     .maybeSingle();
 
   if (error) {
@@ -1599,9 +2196,10 @@ async function loadReferralBonusText() {
     return;
   }
 
-  const bonus = Number(
-    data?.value ?? 10
-  );
+  const bonus =
+    Number(
+      data?.value ?? 10
+    );
 
   text.textContent =
     `သူငယ်ချင်းကို Invite လုပ်ပြီး ${bonus} Coins Referral Bonus ရယူပါ။`;
@@ -1612,13 +2210,15 @@ async function loadReferralBonusText() {
    ========================================================= */
 
 async function copyReferralLink() {
-  const input = $("referralLink");
+  const input =
+    $("referralLink");
 
   if (!input?.value) {
     setText(
       "referralMsg",
       "Referral link is not available."
     );
+
     return;
   }
 
@@ -1631,20 +2231,21 @@ async function copyReferralLink() {
       "referralMsg",
       "Invite Link copied!"
     );
+
   } catch {
-    /*
-      Fallback for older mobile browsers.
-    */
     input.focus();
     input.select();
 
     try {
-      document.execCommand("copy");
+      document.execCommand(
+        "copy"
+      );
 
       setText(
         "referralMsg",
         "Invite Link copied!"
       );
+
     } catch {
       setText(
         "referralMsg",
@@ -1661,14 +2262,18 @@ async function copyReferralLink() {
 async function loadAdminTasks() {
   if (!currentIsAdmin) return;
 
-  const box = $("adminTasks");
+  const box =
+    $("adminTasks");
 
   if (!box) return;
 
   box.innerHTML =
     "<p>Loading tasks...</p>";
 
-  const { data, error } = await sb
+  const {
+    data,
+    error
+  } = await sb
     .from("tasks")
     .select(
       "id, title, reward_coins, video_url"
@@ -1682,96 +2287,117 @@ async function loadAdminTasks() {
       `<p class="msg">${escapeHtml(
         getErrorMessage(error)
       )}</p>`;
+
     return;
   }
 
   if (!data?.length) {
     box.innerHTML =
       "<p class=\"muted\">No tasks.</p>";
+
     return;
   }
 
-  box.innerHTML = data.map(task => {
-    return `
-      <div
-        style="
-          border:1px solid #ddd;
-          border-radius:10px;
-          padding:10px;
-          margin-bottom:10px;
-        "
-      >
-        <strong>
-          #${Number(task.id)}
-        </strong>
-
-        <input
-          class="admin-task-title"
-          data-task-id="${Number(task.id)}"
-          value="${escapeHtml(task.title || "")}"
-          type="text"
-          placeholder="Task title"
-        >
-
-        <input
-          class="admin-task-reward"
-          data-task-id="${Number(task.id)}"
-          value="${Number(task.reward_coins || 0)}"
-          type="number"
-          min="0"
-          step="1"
-          inputmode="numeric"
-          placeholder="Reward"
-        >
-
-        <input
-          class="admin-task-video"
-          data-task-id="${Number(task.id)}"
-          value="${escapeHtml(task.video_url || "")}"
-          type="text"
-          placeholder="Video URL"
-        >
-
-        <div style="margin-top:8px;">
-          <button
-            type="button"
-            class="admin-update-task"
-            data-task-id="${Number(task.id)}"
+  box.innerHTML =
+    data
+      .map(task => {
+        return `
+          <div
+            style="
+              border:1px solid #ddd;
+              border-radius:10px;
+              padding:10px;
+              margin-bottom:10px;
+            "
           >
-            💾 Save
-          </button>
+            <strong>
+              #${Number(task.id)}
+            </strong>
 
-          <button
-            type="button"
-            class="admin-delete-task secondary"
-            data-task-id="${Number(task.id)}"
-          >
-            🗑️ Delete
-          </button>
-        </div>
-      </div>
-    `;
-  }).join("");
+            <input
+              class="admin-task-title"
+              data-task-id="${Number(task.id)}"
+              value="${escapeHtml(
+                task.title || ""
+              )}"
+              type="text"
+              placeholder="Task title"
+            >
+
+            <input
+              class="admin-task-reward"
+              data-task-id="${Number(task.id)}"
+              value="${Number(
+                task.reward_coins || 0
+              )}"
+              type="number"
+              min="0"
+              step="1"
+              inputmode="numeric"
+              placeholder="Reward"
+            >
+
+            <input
+              class="admin-task-video"
+              data-task-id="${Number(task.id)}"
+              value="${escapeHtml(
+                task.video_url || ""
+              )}"
+              type="text"
+              placeholder="Video URL"
+            >
+
+            <div style="margin-top:8px;">
+              <button
+                type="button"
+                class="admin-update-task"
+                data-task-id="${Number(task.id)}"
+              >
+                💾 Save
+              </button>
+
+              <button
+                type="button"
+                class="admin-delete-task secondary"
+                data-task-id="${Number(task.id)}"
+              >
+                🗑️ Delete
+              </button>
+            </div>
+          </div>
+        `;
+      })
+      .join("");
 
   box
-    .querySelectorAll(".admin-update-task")
+    .querySelectorAll(
+      ".admin-update-task"
+    )
     .forEach(btn => {
       btn.addEventListener(
         "click",
-        () => updateAdminTask(
-          Number(btn.dataset.taskId)
-        )
+        () =>
+          updateAdminTask(
+            Number(
+              btn.dataset.taskId
+            )
+          )
       );
     });
 
   box
-    .querySelectorAll(".admin-delete-task")
+    .querySelectorAll(
+      ".admin-delete-task"
+    )
     .forEach(btn => {
       btn.addEventListener(
         "click",
-        () => deleteAdminTask(
-          Number(btn.dataset.taskId)
-        )
+        () =>
+          deleteAdminTask(
+            Number(
+              btn.dataset.taskId
+            )
+          )
       );
     });
 }
@@ -1780,53 +2406,82 @@ async function loadAdminTasks() {
    ADMIN UPDATE TASK
    ========================================================= */
 
-async function updateAdminTask(taskId) {
+async function updateAdminTask(
+  taskId
+) {
   if (!currentIsAdmin) return;
 
-  const titleInput = document.querySelector(
-    `.admin-task-title[data-task-id="${taskId}"]`
-  );
+  const titleInput =
+    document.querySelector(
+      `.admin-task-title[data-task-id="${taskId}"]`
+    );
 
-  const rewardInput = document.querySelector(
-    `.admin-task-reward[data-task-id="${taskId}"]`
-  );
+  const rewardInput =
+    document.querySelector(
+      `.admin-task-reward[data-task-id="${taskId}"]`
+    );
 
-  const videoInput = document.querySelector(
-    `.admin-task-video[data-task-id="${taskId}"]`
-  );
+  const videoInput =
+    document.querySelector(
+      `.admin-task-video[data-task-id="${taskId}"]`
+    );
 
   const title =
-    titleInput?.value.trim() || "";
+    titleInput?.value.trim() ||
+    "";
 
   const reward =
-    Number(rewardInput?.value);
+    Number(
+      rewardInput?.value
+    );
 
   const videoUrl =
-    videoInput?.value.trim() || null;
+    videoInput?.value.trim() ||
+    null;
 
   if (!title) {
-    alert("Task title is required.");
+    alert(
+      "Task title is required."
+    );
+
     return;
   }
 
-  if (!Number.isInteger(reward) || reward < 0) {
-    alert("Reward must be a valid number.");
+  if (
+    !Number.isInteger(
+      reward
+    ) ||
+    reward < 0
+  ) {
+    alert(
+      "Reward must be a valid number."
+    );
+
     return;
   }
 
   try {
-    const { error } = await sb
+    const {
+      error
+    } = await sb
       .from("tasks")
       .update({
         title,
-        reward_coins: reward,
-        video_url: videoUrl
+        reward_coins:
+          reward,
+        video_url:
+          videoUrl
       })
-      .eq("id", taskId);
+      .eq(
+        "id",
+        taskId
+      );
 
     if (error) throw error;
 
-    alert("Task updated successfully.");
+    alert(
+      "Task updated successfully."
+    );
 
     await loadAdminTasks();
     await loadTasks();
@@ -1842,24 +2497,34 @@ async function updateAdminTask(taskId) {
    ADMIN DELETE TASK
    ========================================================= */
 
-async function deleteAdminTask(taskId) {
+async function deleteAdminTask(
+  taskId
+) {
   if (!currentIsAdmin) return;
 
-  const confirmed = confirm(
-    `Delete task #${taskId}?`
-  );
+  const confirmed =
+    confirm(
+      `Delete task #${taskId}?`
+    );
 
   if (!confirmed) return;
 
   try {
-    const { error } = await sb
+    const {
+      error
+    } = await sb
       .from("tasks")
       .delete()
-      .eq("id", taskId);
+      .eq(
+        "id",
+        taskId
+      );
 
     if (error) throw error;
 
-    alert("Task deleted.");
+    alert(
+      "Task deleted."
+    );
 
     await loadAdminTasks();
     await loadTasks();
@@ -1879,33 +2544,44 @@ async function addAdminTask() {
   if (!currentIsAdmin) return;
 
   const title =
-    $("taskTitle")?.value.trim() || "";
+    $("taskTitle")?.value.trim() ||
+    "";
 
   const reward =
-    Number($("taskReward")?.value);
+    Number(
+      $("taskReward")?.value
+    );
 
   if (!title) {
     setText(
       "taskMsg",
       "Task title is required."
     );
+
     return;
   }
 
   if (
-    !Number.isInteger(reward) ||
+    !Number.isInteger(
+      reward
+    ) ||
     reward < 0
   ) {
     setText(
       "taskMsg",
       "Enter a valid reward."
     );
+
     return;
   }
 
-  const btn = $("addTaskBtn");
+  const btn =
+    $("addTaskBtn");
 
-  if (btn) btn.disabled = true;
+  if (btn) {
+    btn.disabled =
+      true;
+  }
 
   setText(
     "taskMsg",
@@ -1913,12 +2589,16 @@ async function addAdminTask() {
   );
 
   try {
-    const { error } = await sb
+    const {
+      error
+    } = await sb
       .from("tasks")
       .insert({
         title,
-        reward_coins: reward,
-        video_url: null
+        reward_coins:
+          reward,
+        video_url:
+          null
       });
 
     if (error) throw error;
@@ -1929,11 +2609,13 @@ async function addAdminTask() {
     );
 
     if ($("taskTitle")) {
-      $("taskTitle").value = "";
+      $("taskTitle").value =
+        "";
     }
 
     if ($("taskReward")) {
-      $("taskReward").value = "";
+      $("taskReward").value =
+        "";
     }
 
     await loadAdminTasks();
@@ -1945,7 +2627,10 @@ async function addAdminTask() {
       getErrorMessage(error)
     );
   } finally {
-    if (btn) btn.disabled = false;
+    if (btn) {
+      btn.disabled =
+        false;
+    }
   }
 }
 
@@ -1956,21 +2641,28 @@ async function addAdminTask() {
 async function loadAdminWithdrawals() {
   if (!currentIsAdmin) return;
 
-  const box = $("adminWithdrawals");
+  const box =
+    $("adminWithdrawals");
 
   if (!box) return;
 
   box.innerHTML =
     "<p>Loading withdrawal requests...</p>";
 
-  const { data, error } = await sb
+  const {
+    data,
+    error
+  } = await sb
     .from("withdrawals")
     .select(
       "id, user_id, amount, status, created_at, payment_method, payment_account"
     )
-    .order("created_at", {
-      ascending: false
-    })
+    .order(
+      "created_at",
+      {
+        ascending: false
+      }
+    )
     .limit(100);
 
   if (error) {
@@ -1978,119 +2670,154 @@ async function loadAdminWithdrawals() {
       `<p class="msg">${escapeHtml(
         getErrorMessage(error)
       )}</p>`;
+
     return;
   }
 
   if (!data?.length) {
     box.innerHTML =
       "<p class=\"muted\">No withdrawal requests.</p>";
+
     return;
   }
 
-  box.innerHTML = data.map(row => {
-    const pending =
-      String(row.status) === "pending";
+  box.innerHTML =
+    data
+      .map(row => {
+        const pending =
+          String(
+            row.status
+          ) === "pending";
 
-    return `
-      <div
-        style="
-          border:1px solid #ddd;
-          border-radius:10px;
-          padding:10px;
-          margin-bottom:10px;
-        "
-      >
-        <strong>
-          Request #${escapeHtml(row.id)}
-        </strong>
+        return `
+          <div
+            style="
+              border:1px solid #ddd;
+              border-radius:10px;
+              padding:10px;
+              margin-bottom:10px;
+            "
+          >
+            <strong>
+              Request #${escapeHtml(
+                row.id
+              )}
+            </strong>
 
-        <div>
-          User:
-          <small>
-            ${escapeHtml(row.user_id || "-")}
-          </small>
-        </div>
+            <div>
+              User:
+              <small>
+                ${escapeHtml(
+                  row.user_id ||
+                  "-"
+                )}
+              </small>
+            </div>
 
-        <div>
-          Amount:
-          ${Number(row.amount || 0)} Coins
-        </div>
+            <div>
+              Amount:
+              ${Number(
+                row.amount || 0
+              )} Coins
+            </div>
 
-        <div>
-          Method:
-          ${escapeHtml(
-            row.payment_method || "-"
-          )}
-        </div>
+            <div>
+              Method:
+              ${escapeHtml(
+                row.payment_method ||
+                "-"
+              )}
+            </div>
 
-        <div>
-          Account:
-          ${escapeHtml(
-            row.payment_account || "-"
-          )}
-        </div>
+            <div>
+              Account:
+              ${escapeHtml(
+                row.payment_account ||
+                "-"
+              )}
+            </div>
 
-        <div>
-          Status:
-          <strong>
-            ${escapeHtml(row.status || "-")}
-          </strong>
-        </div>
+            <div>
+              Status:
+              <strong>
+                ${escapeHtml(
+                  row.status ||
+                  "-"
+                )}
+              </strong>
+            </div>
 
-        <small class="muted">
-          ${escapeHtml(
-            formatDate(row.created_at)
-          )}
-        </small>
+            <small class="muted">
+              ${escapeHtml(
+                formatDate(
+                  row.created_at
+                )
+              )}
+            </small>
 
-        ${
-          pending
-            ? `
-              <div style="margin-top:8px;">
-                <button
-                  type="button"
-                  class="approve-withdrawal"
-                  data-id="${Number(row.id)}"
-                >
-                  ✅ Approve
-                </button>
+            ${
+              pending
+                ? `
+                  <div style="margin-top:8px;">
+                    <button
+                      type="button"
+                      class="approve-withdrawal"
+                      data-id="${Number(
+                        row.id
+                      )}"
+                    >
+                      ✅ Approve
+                    </button>
 
-                <button
-                  type="button"
-                  class="reject-withdrawal secondary"
-                  data-id="${Number(row.id)}"
-                >
-                  ❌ Reject
-                </button>
-              </div>
-            `
-            : ""
-        }
-      </div>
-    `;
-  }).join("");
+                    <button
+                      type="button"
+                      class="reject-withdrawal secondary"
+                      data-id="${Number(
+                        row.id
+                      )}"
+                    >
+                      ❌ Reject
+                    </button>
+                  </div>
+                `
+                : ""
+            }
+          </div>
+        `;
+      })
+      .join("");
 
   box
-    .querySelectorAll(".approve-withdrawal")
+    .querySelectorAll(
+      ".approve-withdrawal"
+    )
     .forEach(btn => {
       btn.addEventListener(
         "click",
-        () => updateWithdrawalStatus(
-          Number(btn.dataset.id),
-          "approved"
-        )
+        () =>
+          updateWithdrawalStatus(
+            Number(
+              btn.dataset.id
+            ),
+            "approved"
+          )
       );
     });
 
   box
-    .querySelectorAll(".reject-withdrawal")
+    .querySelectorAll(
+      ".reject-withdrawal"
+    )
     .forEach(btn => {
       btn.addEventListener(
         "click",
-        () => updateWithdrawalStatus(
-          Number(btn.dataset.id),
-          "rejected"
-        )
+        () =>
+          updateWithdrawalStatus(
+            Number(
+              btn.dataset.id
+            ),
+            "rejected"
+          )
       );
     });
 }
@@ -2110,18 +2837,23 @@ async function updateWithdrawalStatus(
       ? "approve"
       : "reject";
 
-  const confirmed = confirm(
-    `Are you sure you want to ${action} withdrawal #${withdrawalId}?`
-  );
+  const confirmed =
+    confirm(
+      `Are you sure you want to ${action} withdrawal #${withdrawalId}?`
+    );
 
   if (!confirmed) return;
 
   try {
-    const { error } = await sb.rpc(
+    const {
+      error
+    } = await sb.rpc(
       "update_withdrawal_status",
       {
-        p_withdrawal_id: withdrawalId,
-        p_status: status
+        p_withdrawal_id:
+          withdrawalId,
+        p_status:
+          status
       }
     );
 
@@ -2152,10 +2884,18 @@ async function loadAdminReferralSettings() {
 
   if (!input) return;
 
-  const { data, error } = await sb
+  const {
+    data,
+    error
+  } = await sb
     .from("app_settings")
-    .select("key, value")
-    .eq("key", "referral_bonus_coins")
+    .select(
+      "key, value"
+    )
+    .eq(
+      "key",
+      "referral_bonus_coins"
+    )
     .maybeSingle();
 
   if (error) {
@@ -2163,12 +2903,15 @@ async function loadAdminReferralSettings() {
       "adminSettingsMsg",
       getErrorMessage(error)
     );
+
     return;
   }
 
   if (data) {
     input.value =
-      Number(data.value || 0);
+      Number(
+        data.value || 0
+      );
   }
 }
 
@@ -2183,23 +2926,31 @@ async function saveAdminReferralSettings() {
     $("adminReferralBonus");
 
   const value =
-    Number(input?.value);
+    Number(
+      input?.value
+    );
 
   if (
-    !Number.isInteger(value) ||
+    !Number.isInteger(
+      value
+    ) ||
     value < 0
   ) {
     setText(
       "adminSettingsMsg",
       "Enter a valid referral bonus."
     );
+
     return;
   }
 
   const btn =
     $("adminSaveSettingsBtn");
 
-  if (btn) btn.disabled = true;
+  if (btn) {
+    btn.disabled =
+      true;
+  }
 
   setText(
     "adminSettingsMsg",
@@ -2207,33 +2958,33 @@ async function saveAdminReferralSettings() {
   );
 
   try {
-    /*
-      Existing row should normally be present.
-    */
-    const { data, error } = await sb
+    const {
+      data,
+      error
+    } = await sb
       .from("app_settings")
       .update({
         value
       })
-      .eq("key", "referral_bonus_coins")
+      .eq(
+        "key",
+        "referral_bonus_coins"
+      )
       .select("key")
       .maybeSingle();
 
     if (error) throw error;
 
     if (!data) {
-      /*
-        Try insert only if the row does not exist.
-        RLS may reject this, which is expected if INSERT
-        is intentionally disabled.
-      */
-      const { error: insertError } =
-        await sb
-          .from("app_settings")
-          .insert({
-            key: "referral_bonus_coins",
-            value
-          });
+      const {
+        error: insertError
+      } = await sb
+        .from("app_settings")
+        .insert({
+          key:
+            "referral_bonus_coins",
+          value
+        });
 
       if (insertError) {
         throw insertError;
@@ -2253,7 +3004,10 @@ async function saveAdminReferralSettings() {
       getErrorMessage(error)
     );
   } finally {
-    if (btn) btn.disabled = false;
+    if (btn) {
+      btn.disabled =
+        false;
+    }
   }
 }
 
@@ -2262,9 +3016,13 @@ async function saveAdminReferralSettings() {
    ========================================================= */
 
 async function logoutUser() {
-  const btn = $("logoutBtn");
+  const btn =
+    $("logoutBtn");
 
-  if (btn) btn.disabled = true;
+  if (btn) {
+    btn.disabled =
+      true;
+  }
 
   try {
     await sb.auth.signOut();
@@ -2277,9 +3035,6 @@ async function logoutUser() {
 
   clearAppState();
 
-  /*
-    Full reload clears all old UI state.
-  */
   window.location.reload();
 }
 
@@ -2362,14 +3117,17 @@ function setupEventListeners() {
 function setupAuthListener() {
   sb.auth.onAuthStateChange(
     (event, session) => {
-      /*
-        INITIAL_SESSION is handled by autoLogin().
-      */
-      if (event === "INITIAL_SESSION") {
+      if (
+        event ===
+        "INITIAL_SESSION"
+      ) {
         return;
       }
 
-      if (event === "PASSWORD_RECOVERY") {
+      if (
+        event ===
+        "PASSWORD_RECOVERY"
+      ) {
         showPasswordRecovery();
         return;
       }
@@ -2380,20 +3138,22 @@ function setupAuthListener() {
         return;
       }
 
-      currentUser = session.user;
+      currentUser =
+        session.user;
 
-      /*
-        Do not await Supabase queries directly inside the
-        auth callback. Defer app loading.
-      */
-      setTimeout(() => {
-        showApp(session.user).catch(error => {
-          console.error(
-            "Auth showApp:",
-            error
-          );
-        });
-      }, 0);
+      setTimeout(
+        () => {
+          showApp(
+            session.user
+          ).catch(error => {
+            console.error(
+              "Auth showApp:",
+              error
+            );
+          });
+        },
+        0
+      );
     }
   );
 }
@@ -2410,18 +3170,21 @@ function isPasswordRecoveryLink() {
       );
 
     if (
-      searchParams.get("type") ===
-      "recovery"
+      searchParams.get(
+        "type"
+      ) === "recovery"
     ) {
       return true;
     }
 
     const hash =
-      window.location.hash || "";
+      window.location.hash ||
+      "";
 
     return /(?:^|[&#])type=recovery(?:&|$)/i.test(
       hash
     );
+
   } catch {
     return false;
   }
@@ -2435,29 +3198,33 @@ async function autoLogin() {
   try {
     saveReferralFromUrl();
 
-    /*
-      Do not show the normal app before Supabase
-      processes a password-recovery link.
-    */
-    if (isPasswordRecoveryLink()) {
+    if (
+      isPasswordRecoveryLink()
+    ) {
       return;
     }
 
-    const { data, error } =
-      await sb.auth.getSession();
+    const {
+      data,
+      error
+    } = await sb.auth.getSession();
 
     if (error) throw error;
 
-    if (data.session?.user) {
+    if (
+      data.session?.user
+    ) {
       currentUser =
         data.session.user;
 
       await showApp(
         data.session.user
       );
+
     } else {
       showAuthScreen();
     }
+
   } catch (error) {
     console.error(
       "Auto login:",
@@ -2475,7 +3242,8 @@ async function autoLogin() {
 function registerServiceWorker() {
   if (
     "serviceWorker" in navigator &&
-    window.location.protocol === "https:"
+    window.location.protocol ===
+      "https:"
   ) {
     navigator.serviceWorker
       .register("./sw.js")
@@ -2501,6 +3269,7 @@ document.addEventListener(
   "DOMContentLoaded",
   async () => {
     setupEventListeners();
+
     setupAuthListener();
 
     /*
@@ -2509,8 +3278,7 @@ document.addEventListener(
     saveReferralFromUrl();
 
     /*
-      Service worker is kept so the existing website
-      functionality is not unnecessarily removed.
+      Keep existing service worker.
     */
     registerServiceWorker();
 
