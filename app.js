@@ -1893,9 +1893,7 @@ async function requestWithdrawal() {
   if (!currentUser) return;
 
   const amount =
-    Number(
-      $("withdrawAmount")?.value
-    );
+    Number($("withdrawAmount")?.value);
 
   const paymentMethod =
     $("paymentMethod")?.value;
@@ -1911,7 +1909,6 @@ async function requestWithdrawal() {
       "withdrawMsg",
       "Enter a valid coin amount."
     );
-
     return;
   }
 
@@ -1920,7 +1917,6 @@ async function requestWithdrawal() {
       "withdrawMsg",
       "Select a payment method."
     );
-
     return;
   }
 
@@ -1929,7 +1925,6 @@ async function requestWithdrawal() {
       "withdrawMsg",
       "Enter demo account / phone."
     );
-
     return;
   }
 
@@ -1937,8 +1932,7 @@ async function requestWithdrawal() {
     $("withdrawBtn");
 
   if (btn) {
-    btn.disabled =
-      true;
+    btn.disabled = true;
   }
 
   setText(
@@ -1948,34 +1942,91 @@ async function requestWithdrawal() {
 
   try {
     const {
-      data,
-      error
-    } = await sb.rpc(
-      "request_withdrawal",
-      {
-        p_amount: amount,
-        p_payment_method:
-          paymentMethod,
-        p_payment_account:
-          paymentAccount
-      }
-    );
+      data: sessionData,
+      error: sessionError
+    } = await sb.auth.getSession();
 
-    if (error) throw error;
+    if (sessionError) {
+      throw sessionError;
+    }
 
-    setText(
-      "withdrawMsg",
-      `Withdrawal request created. Request #${data}`
-    );
+    const accessToken =
+      sessionData?.session?.access_token;
+
+    if (!accessToken) {
+      throw new Error(
+        "Your login session has expired. Please login again."
+      );
+    }
+
+    const response =
+      await fetch(
+        `${SUPABASE_URL}/functions/v1/Process-withdrawals`,
+        {
+          method: "POST",
+
+          headers: {
+            "Content-Type":
+              "application/json",
+
+            "Authorization":
+              `Bearer ${accessToken}`
+          },
+
+          body: JSON.stringify({
+            amount,
+            payment_method:
+              paymentMethod,
+            payment_account:
+              paymentAccount
+          })
+        }
+      );
+
+    let result = null;
+
+    try {
+      result =
+        await response.json();
+    } catch {
+      result = null;
+    }
+
+    if (!response.ok) {
+      throw new Error(
+        result?.error ||
+        result?.message ||
+        `Withdrawal request failed (${response.status}).`
+      );
+    }
+
+    const requestId =
+      result?.request_id ??
+      result?.withdrawal_id ??
+      result?.id ??
+      result?.data?.request_id ??
+      result?.data?.withdrawal_id ??
+      result?.data?.id ??
+      null;
+
+    if (requestId !== null) {
+      setText(
+        "withdrawMsg",
+        `Withdrawal request created. Request #${requestId}`
+      );
+    } else {
+      setText(
+        "withdrawMsg",
+        "Withdrawal request created successfully."
+      );
+    }
 
     if ($("withdrawAmount")) {
-      $("withdrawAmount").value =
-        "";
+      $("withdrawAmount").value = "";
     }
 
     if ($("paymentAccount")) {
-      $("paymentAccount").value =
-        "";
+      $("paymentAccount").value = "";
     }
 
     await loadProfile();
@@ -1983,14 +2034,19 @@ async function requestWithdrawal() {
     await loadTransactions();
 
   } catch (error) {
+    console.error(
+      "Withdrawal error:",
+      error
+    );
+
     setText(
       "withdrawMsg",
       getErrorMessage(error)
     );
+
   } finally {
     if (btn) {
-      btn.disabled =
-        false;
+      btn.disabled = false;
     }
   }
 }
