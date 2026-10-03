@@ -1,17 +1,375 @@
 <!doctype html>
 <html lang="my">
-
 <head>
   <meta charset="utf-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta
+    name="viewport"
+    content="width=device-width,initial-scale=1,maximum-scale=1"
+  >
 
   <title>Coin Win Myanmar</title>
 
-  <link rel="stylesheet" href="style.css">
+  <meta
+    name="description"
+    content="Coin Win Myanmar rewards platform"
+  >
 
-  <!-- PWA -->
-  <link rel="manifest" href="manifest.json">
-  <meta name="theme-color" content="#40eaff">
+  <style>
+    * {
+      box-sizing: border-box;
+    }
+
+    html {
+      scroll-behavior: smooth;
+    }
+
+    body {
+      margin: 0;
+      padding: 0;
+      font-family:
+        system-ui,
+        -apple-system,
+        BlinkMacSystemFont,
+        "Segoe UI",
+        sans-serif;
+      background:
+        linear-gradient(180deg, #f3f7ff 0%, #eef2f7 100%);
+      color: #172033;
+    }
+
+    button,
+    input,
+    select {
+      font: inherit;
+    }
+
+    button {
+      cursor: pointer;
+    }
+
+    .container {
+      width: 100%;
+      max-width: 760px;
+      margin: 0 auto;
+      padding: 18px 14px 50px;
+    }
+
+    .card {
+      background: #ffffff;
+      border-radius: 18px;
+      padding: 20px;
+      margin-bottom: 16px;
+      box-shadow:
+        0 8px 25px rgba(20, 35, 70, 0.08);
+      border: 1px solid rgba(0, 0, 0, 0.05);
+    }
+
+    h1,
+    h2,
+    h3 {
+      margin-top: 0;
+    }
+
+    h1 {
+      font-size: 25px;
+      margin-bottom: 5px;
+    }
+
+    h2 {
+      font-size: 20px;
+      margin-bottom: 14px;
+    }
+
+    h3 {
+      font-size: 17px;
+      margin-bottom: 12px;
+    }
+
+    .muted {
+      color: #6d7687;
+      font-size: 14px;
+    }
+
+    .msg {
+      margin-top: 12px;
+      font-size: 14px;
+      font-weight: 600;
+    }
+
+    .row {
+      display: flex;
+      gap: 10px;
+    }
+
+    .row > * {
+      flex: 1;
+    }
+
+    input,
+    select {
+      width: 100%;
+      padding: 13px 14px;
+      margin: 7px 0;
+      border: 1px solid #d5dbe5;
+      border-radius: 11px;
+      background: #fff;
+      color: #172033;
+      outline: none;
+    }
+
+    input:focus,
+    select:focus {
+      border-color: #4d7cff;
+      box-shadow: 0 0 0 3px rgba(77, 124, 255, 0.12);
+    }
+
+    button {
+      width: 100%;
+      border: 0;
+      border-radius: 11px;
+      padding: 13px 16px;
+      margin-top: 8px;
+      background: #2864e8;
+      color: white;
+      font-weight: 700;
+      transition: 0.15s ease;
+    }
+
+    button:active {
+      transform: scale(0.98);
+    }
+
+    button:hover {
+      opacity: 0.92;
+    }
+
+    button.secondary {
+      background: #edf1f7;
+      color: #26334a;
+    }
+
+    button.small {
+      width: auto;
+      min-width: 90px;
+      padding: 10px 14px;
+      margin-top: 0;
+    }
+
+    button:disabled {
+      opacity: 0.55;
+      cursor: not-allowed;
+    }
+
+    .top {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 15px;
+      margin-bottom: 16px;
+    }
+
+    .top h1 {
+      margin-bottom: 4px;
+    }
+
+    .balance {
+      text-align: center;
+      padding: 25px 20px;
+      background:
+        linear-gradient(135deg, #1f63e9, #5a8cff);
+      color: white;
+      border: none;
+    }
+
+    .balance span {
+      display: block;
+      opacity: 0.9;
+    }
+
+    .balance strong {
+      display: block;
+      font-size: 42px;
+      line-height: 1.1;
+      margin: 8px 0;
+    }
+
+    .task,
+    .tx {
+      background: #f7f9fc;
+      border: 1px solid #e4e8ef;
+      border-radius: 13px;
+      padding: 15px;
+      margin: 10px 0;
+    }
+
+    .task strong {
+      font-size: 16px;
+    }
+
+    .task button {
+      margin-top: 12px;
+    }
+
+    /* Referral */
+
+    .referral-box {
+      background: #f7f9ff;
+      border: 1px solid #dfe7fb;
+      padding: 14px;
+      border-radius: 13px;
+    }
+
+    #referralLink {
+      margin: 0 0 9px;
+      background: white;
+    }
+
+    /* Withdrawal */
+
+    .withdraw-card {
+      overflow: hidden;
+    }
+
+    .withdraw-header {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      margin-bottom: 5px;
+    }
+
+    .withdraw-icon {
+      width: 46px;
+      height: 46px;
+      border-radius: 13px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      background: #edf4ff;
+      font-size: 24px;
+      flex-shrink: 0;
+    }
+
+    .withdraw-title {
+      margin: 0;
+      font-size: 21px;
+    }
+
+    .withdraw-subtitle {
+      margin: 3px 0 0;
+      color: #6d7687;
+      font-size: 13px;
+    }
+
+    .withdraw-info {
+      margin: 15px 0;
+      padding: 14px;
+      border-radius: 13px;
+      background: #f7f9fc;
+      border: 1px solid #e4e8ef;
+    }
+
+    .withdraw-info-row {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      margin: 8px 0;
+      font-size: 14px;
+    }
+
+    .withdraw-info-row:first-child {
+      margin-top: 0;
+    }
+
+    .withdraw-info-row:last-child {
+      margin-bottom: 0;
+    }
+
+    .withdraw-label {
+      font-size: 13px;
+      color: #6d7687;
+      margin: 8px 0 3px;
+      display: block;
+      font-weight: 600;
+    }
+
+    .withdraw-btn {
+      font-size: 16px;
+      padding: 14px;
+      margin-top: 12px;
+    }
+
+    .withdraw-note {
+      display: flex;
+      gap: 9px;
+      align-items: flex-start;
+      margin-top: 13px;
+      padding: 12px;
+      border-radius: 11px;
+      background: #fff8e8;
+      border: 1px solid #f2dfad;
+      color: #765d1d;
+      font-size: 12px;
+      line-height: 1.5;
+    }
+
+    .history-item {
+      background: #f7f9fc;
+      border: 1px solid #e4e8ef;
+      border-radius: 13px;
+      padding: 14px;
+      margin: 9px 0;
+    }
+
+    hr {
+      border: 0;
+      border-top: 1px solid #e5e9f0;
+      margin: 22px 0;
+    }
+
+    label {
+      display: block;
+      font-size: 13px;
+      font-weight: 600;
+      color: #596477;
+      margin-top: 8px;
+    }
+
+    #adminCard {
+      border: 2px solid #e3e9f8;
+    }
+
+    @media (max-width: 520px) {
+      .container {
+        padding: 12px 10px 40px;
+      }
+
+      .card {
+        padding: 16px;
+        border-radius: 15px;
+      }
+
+      .top {
+        align-items: flex-start;
+      }
+
+      .top h1 {
+        font-size: 21px;
+      }
+
+      .top .small {
+        min-width: 75px;
+      }
+
+      .balance strong {
+        font-size: 38px;
+      }
+
+      .row {
+        flex-direction: column;
+        gap: 0;
+      }
+    }
+  </style>
 </head>
 
 <body>
@@ -25,7 +383,9 @@
 
     <h1>🪙 Coin Win Myanmar</h1>
 
-    <p class="muted">Demo Website</p>
+    <p class="muted">
+      Earn Coins from available tasks and manage your rewards.
+    </p>
 
     <input
       id="email"
@@ -42,22 +402,17 @@
     >
 
     <div class="row">
-
-      <button
-        id="loginBtn"
-        type="button"
-      >
+      <button onclick="login()">
         Login
       </button>
 
       <button
         id="signupBtn"
-        type="button"
         class="secondary"
+        type="button"
       >
         Register
       </button>
-
     </div>
 
     <button
@@ -69,11 +424,7 @@
       🔐 Forgot Password?
     </button>
 
-    <p
-      id="authMsg"
-      class="msg"
-      aria-live="polite"
-    ></p>
+    <p id="authMsg" class="msg"></p>
 
   </section>
 
@@ -113,7 +464,6 @@
     <p
       id="resetPasswordMsg"
       class="msg"
-      aria-live="polite"
     ></p>
 
   </section>
@@ -128,20 +478,17 @@
     <header class="top">
 
       <div>
-
         <h1>🪙 Coin Win Myanmar</h1>
-
         <p
           id="userEmail"
           class="muted"
         ></p>
-
       </div>
 
       <button
         id="logoutBtn"
-        type="button"
         class="secondary small"
+        type="button"
       >
         Logout
       </button>
@@ -150,13 +497,15 @@
 
 
     <!-- =========================
-         COIN BALANCE
+         BALANCE
     ========================== -->
     <section class="balance card">
 
-      <span>Coin Balance</span>
+      <span>🪙 Coin Balance</span>
 
-      <strong id="balance">0</strong>
+      <strong id="balance">
+        0
+      </strong>
 
       <span>Coins</span>
 
@@ -170,6 +519,10 @@
 
       <h2>🎯 Tasks</h2>
 
+      <p class="muted">
+        Complete available tasks to earn Coins.
+      </p>
+
       <div id="tasks"></div>
 
     </section>
@@ -182,14 +535,11 @@
 
       <h2>👥 Invite Friends</h2>
 
-      <p
-        id="referralBonusText"
-        class="muted"
-      >
-        သူငယ်ချင်းကို Invite လုပ်ပြီး Referral Bonus ရယူပါ။
+      <p class="muted">
+        Invite your friends and earn the available referral bonus.
       </p>
 
-      <div style="margin:10px 0;">
+      <div class="referral-box">
 
         <input
           id="referralLink"
@@ -197,34 +547,21 @@
           readonly
           value=""
           placeholder="Loading referral link..."
-          aria-label="Referral invite link"
-          style="
-            display:block;
-            width:100%;
-            box-sizing:border-box;
-            padding:14px;
-            background:#ffffff;
-            color:#111111;
-            border:2px solid #999999;
-            border-radius:8px;
-            font-size:14px;
-          "
         >
 
+        <button
+          id="copyReferralBtn"
+          type="button"
+        >
+          🔗 Copy Invite Link
+        </button>
+
+        <p
+          id="referralMsg"
+          class="muted"
+        ></p>
+
       </div>
-
-      <button
-        id="copyReferralBtn"
-        type="button"
-      >
-        🔗 Copy Invite Link
-      </button>
-
-      <p
-        id="referralMsg"
-        class="muted"
-        aria-live="polite"
-      ></p>
 
     </section>
 
@@ -232,13 +569,52 @@
     <!-- =========================
          WITHDRAWAL
     ========================== -->
-    <section class="card">
+    <section class="card withdraw-card">
 
-      <h2>💳 Withdrawal Demo</h2>
+      <div class="withdraw-header">
 
-      <p class="muted">
-        ဒီနေရာမှာ withdrawal request ကို စမ်းသပ်နိုင်ပါတယ်။
-      </p>
+        <div class="withdraw-icon">
+          💸
+        </div>
+
+        <div>
+          <h2 class="withdraw-title">
+            Withdraw Coins
+          </h2>
+
+          <p class="withdraw-subtitle">
+            Submit a withdrawal request using your preferred payment method.
+          </p>
+        </div>
+
+      </div>
+
+
+      <div class="withdraw-info">
+
+        <div class="withdraw-info-row">
+          <span>🪙</span>
+          <span>
+            Your current balance:
+            <strong>
+              <span id="withdrawBalanceText">Available Coins</span>
+            </strong>
+          </span>
+        </div>
+
+        <div class="withdraw-info-row">
+          <span>📝</span>
+          <span>
+            Withdrawal requests are reviewed by Admin.
+          </span>
+        </div>
+
+      </div>
+
+
+      <label for="withdrawAmount">
+        Coin Amount
+      </label>
 
       <input
         id="withdrawAmount"
@@ -246,13 +622,15 @@
         min="1"
         step="1"
         inputmode="numeric"
-        placeholder="Coin amount"
+        placeholder="Enter Coin amount"
       >
 
-      <select
-        id="paymentMethod"
-        aria-label="Payment method"
-      >
+
+      <label for="paymentMethod">
+        Payment Method
+      </label>
+
+      <select id="paymentMethod">
 
         <option value="Wave Money">
           Wave Money
@@ -268,25 +646,44 @@
 
       </select>
 
+
+      <label for="paymentAccount">
+        Payment Account / Phone Number
+      </label>
+
       <input
         id="paymentAccount"
         type="text"
-        placeholder="Demo account / phone"
-        autocomplete="off"
+        inputmode="tel"
+        placeholder="Enter your payment account or phone number"
       >
+
 
       <button
         id="withdrawBtn"
+        class="withdraw-btn"
         type="button"
       >
-        Request Withdrawal
+        💸 Request Withdrawal
       </button>
+
 
       <p
         id="withdrawMsg"
         class="msg"
-        aria-live="polite"
       ></p>
+
+
+      <div class="withdraw-note">
+
+        <span>ℹ️</span>
+
+        <span>
+          After submitting your request, it will be reviewed by Admin.
+          Please make sure your payment account information is correct.
+        </span>
+
+      </div>
 
     </section>
 
@@ -297,6 +694,10 @@
     <section class="card">
 
       <h2>📋 Withdrawal History</h2>
+
+      <p class="muted">
+        View your previous withdrawal requests and their status.
+      </p>
 
       <div id="withdrawals"></div>
 
@@ -327,29 +728,24 @@
       <h2>👑 Admin Panel</h2>
 
 
-      <!-- =========================
-           ADD TASK
-      ========================== -->
+      <!-- ADD TASK -->
       <h3>➕ Add Task</h3>
 
       <input
         id="taskTitle"
         type="text"
         placeholder="Task title"
-        autocomplete="off"
       >
 
       <input
         id="taskReward"
         type="number"
         min="0"
-        step="1"
-        inputmode="numeric"
         placeholder="Reward Coins"
       >
 
       <button
-        id="addTaskBtn"
+        onclick="addTask()"
         type="button"
       >
         Add Task
@@ -358,16 +754,39 @@
       <p
         id="taskMsg"
         class="muted"
-        aria-live="polite"
       ></p>
 
 
       <hr>
 
 
-      <!-- =========================
-           ADMIN SETTINGS
-      ========================== -->
+      <!-- REFERRAL BONUS -->
+      <h3>👥 Referral Bonus</h3>
+
+      <input
+        id="referralBonus"
+        type="number"
+        min="0"
+        placeholder="Referral Bonus Coins"
+      >
+
+      <button
+        id="saveReferralBonusBtn"
+        type="button"
+      >
+        Save Referral Bonus
+      </button>
+
+      <p
+        id="adminReferralMsg"
+        class="muted"
+      ></p>
+
+
+      <hr>
+
+
+      <!-- ADMIN SETTINGS -->
       <h3>⚙️ Admin Settings</h3>
 
       <label for="adminReferralBonus">
@@ -378,8 +797,6 @@
         id="adminReferralBonus"
         type="number"
         min="0"
-        step="1"
-        inputmode="numeric"
         placeholder="Referral Bonus Coins"
       >
 
@@ -393,16 +810,13 @@
       <p
         id="adminSettingsMsg"
         class="muted"
-        aria-live="polite"
       ></p>
 
 
       <hr>
 
 
-      <!-- =========================
-           TASK MANAGEMENT
-      ========================== -->
+      <!-- TASK MANAGEMENT -->
       <h3>🎯 Task Management</h3>
 
       <div id="adminTasks"></div>
@@ -411,9 +825,7 @@
       <hr>
 
 
-      <!-- =========================
-           WITHDRAWAL REQUESTS
-      ========================== -->
+      <!-- WITHDRAWAL REQUESTS -->
       <h3>💳 Withdrawal Requests</h3>
 
       <div id="adminWithdrawals"></div>
@@ -434,7 +846,7 @@
 <!-- =========================
      APP JS
 ========================== -->
-<script src="app.js?v=25"></script>
+<script src="app.js?v=21"></script>
 
 </body>
 </html>
