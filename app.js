@@ -1009,8 +1009,8 @@ async function loadTasks() {
   } = await sb
     .from("tasks")
     .select(
-      "id, title, reward_coins, video_url"
-    )
+  "id, title, reward_coins, video_url, watch_seconds"
+)
     .order("id", {
       ascending: true
     });
@@ -1214,6 +1214,7 @@ function renderTask(
       </div>
 
       <div style="margin-top:8px;">
+<div class="video-host" data-video-host="${taskId}"></div>
         <button
           type="button"
           class="watch-video-btn"
@@ -1277,6 +1278,41 @@ function renderTask(
         status
       )
   );
+}
+
+let youtubeAPIReady = null;
+
+function loadYouTubeAPI() {
+  if (youtubeAPIReady) return youtubeAPIReady;
+
+  youtubeAPIReady = new Promise((resolve) => {
+    if (window.YT && window.YT.Player) {
+      resolve();
+      return;
+    }
+
+    const existing = document.querySelector(
+      'script[src="https://www.youtube.com/iframe_api"]'
+    );
+
+    const previousCallback = window.onYouTubeIframeAPIReady;
+
+    window.onYouTubeIframeAPIReady = () => {
+      if (typeof previousCallback === "function") {
+        previousCallback();
+      }
+      resolve();
+    };
+
+    if (!existing) {
+      const script = document.createElement("script");
+      script.src = "https://www.youtube.com/iframe_api";
+      script.async = true;
+      document.head.appendChild(script);
+    }
+  });
+
+   return youtubeAPIReady;
 }
 
 /* =========================================================
