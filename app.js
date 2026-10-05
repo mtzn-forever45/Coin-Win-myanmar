@@ -1283,60 +1283,49 @@ function renderTask(
    VIDEO WATCH
    ========================================================= */
 
-function startVideoWatch(
+async function startVideoWatch(
   task,
   watchBtn,
   claimBtn,
   status
 ) {
-  const taskId =
-    Number(task.id);
-
-  const videoUrl =
-    normalizeVideoUrl(
-      task.video_url
-    );
+  const taskId = Number(task.id);
+  const videoUrl = normalizeVideoUrl(task.video_url);
 
   if (!videoUrl) {
-    if (status) {
-      status.textContent =
-        "Video URL is missing.";
-    }
-
+    if (status) status.textContent = "Video URL is missing.";
     return;
   }
 
-  if (
-    videoTimers.has(taskId)
-  ) {
-    clearTimeout(
-      videoTimers.get(taskId)
-    );
+  // Stop old timer
+  if (videoTimers.has(taskId)) {
+    clearTimeout(videoTimers.get(taskId));
+    videoTimers.delete(taskId);
   }
 
-  /*
-    Five-second demo watch requirement.
-  */
-  const WATCH_SECONDS = 5;
+  // Reset previous state
+  videoStates.set(taskId, {
+    started: false,
+    ended: false,
+    skipped: false,
+    lastTime: 0,
+    maxTime: 0
+  });
 
-  watchBtn.disabled =
-    true;
+  watchBtn.disabled = true;
 
   if (claimBtn) {
-    claimBtn.disabled =
-      true;
-
-    claimBtn.textContent =
-      `🔒 Watch ${WATCH_SECONDS}s first`;
+    claimBtn.disabled = true;
+    claimBtn.textContent = "🔒 Watch video until the end";
   }
 
   if (status) {
     status.textContent =
-      `Video opened. Wait ${WATCH_SECONDS} seconds, then return here.`;
+      "▶️ Video ဖွင့်နေသည်... Video အဆုံးထိကြည့်ပါ။";
   }
 
   /*
-    Open video.
+    Open YouTube video.
   */
   let opened = null;
 
@@ -1347,10 +1336,7 @@ function startVideoWatch(
       "noopener,noreferrer"
     );
   } catch (error) {
-    console.warn(
-      "Video popup:",
-      error
-    );
+    console.warn("Video popup:", error);
   }
 
   /*
@@ -1361,53 +1347,36 @@ function startVideoWatch(
       status.innerHTML =
         `Popup blocked. <a href="${escapeHtml(
           videoUrl
-        )}" target="_blank" rel="noopener noreferrer">Open Video</a> then return here.`;
+        )}" target="_blank" rel="noopener noreferrer">
+        Open Video
+        </a> ပြီးရင် ဒီနေရာကို ပြန်လာပါ။`;
     }
+
+    watchBtn.disabled = false;
+    return;
   }
 
   /*
-    Unlock claim after 5 seconds.
+    IMPORTANT:
+    Opening another YouTube tab cannot tell our website
+    whether the YouTube video really reached END.
+
+    So do NOT unlock the Coin just because 5 seconds passed.
   */
-  const timer =
-    setTimeout(
-      () => {
-        videoTimers.delete(
-          taskId
-        );
 
-        if (
-          claimedTaskIds.has(
-            taskId
-          )
-        ) {
-          return;
-        }
+  if (status) {
+    status.textContent =
+      "⚠️ Video ကို အဆုံးထိကြည့်ပြီး ဒီနေရာကို ပြန်လာပါ။";
+  }
 
-        if (claimBtn) {
-          claimBtn.disabled =
-            false;
-
-          claimBtn.textContent =
-            `🎁 Claim +${Number(
-              task.reward_coins || 0
-            )} Coins`;
-        }
-
-        if (status) {
-          status.textContent =
-            "✅ Watch step completed. You can claim your Coins.";
-        }
-
-        watchBtn.disabled =
-          false;
-      },
-      WATCH_SECONDS * 1000
-    );
-
-  videoTimers.set(
-    taskId,
-    timer
-  );
+  /*
+    Keep Claim locked.
+  */
+  if (claimBtn) {
+    claimBtn.disabled = true;
+    claimBtn.textContent =
+      `🔒 Video အဆုံးထိကြည့်ပါ`;
+  }
 }
 
 /* =========================================================
