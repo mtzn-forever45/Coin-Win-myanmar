@@ -48,6 +48,12 @@ const claimingTaskIds = new Set();
 const videoTimers = new Map();
 
 /*
+  YouTube player/watch state
+*/
+const videoStates = new Map();
+const players = new Map();
+
+/*
   Used for next-video auto flow.
 */
 let autoNextVideoTaskId = null;
