@@ -1293,17 +1293,28 @@ async function startVideoWatch(
   const videoUrl = normalizeVideoUrl(task.video_url);
 
   if (!videoUrl) {
-    if (status) status.textContent = "Video URL is missing.";
+    if (status) {
+      status.textContent = "Video URL is missing.";
+    }
     return;
   }
 
-  // Stop old timer
+  const videoId = getYouTubeVideoId(videoUrl);
+
+  if (!videoId) {
+    if (status) {
+      status.textContent = "Invalid YouTube URL.";
+    }
+    return;
+  }
+
+  // Stop previous timer
   if (videoTimers.has(taskId)) {
-    clearTimeout(videoTimers.get(taskId));
+    clearInterval(videoTimers.get(taskId));
     videoTimers.delete(taskId);
   }
 
-  // Reset previous state
+  // Reset watch state
   videoStates.set(taskId, {
     started: false,
     ended: false,
@@ -1316,67 +1327,273 @@ async function startVideoWatch(
 
   if (claimBtn) {
     claimBtn.disabled = true;
-    claimBtn.textContent = "🔒 Watch video until the end";
+    claimBtn.textContent = "🔒 Video အဆုံးထိကြည့်ပါ";
   }
 
   if (status) {
     status.textContent =
-      "▶️ Video ဖွင့်နေသည်... Video အဆုံးထိကြည့်ပါ။";
+      "▶️ Video ကို အဆုံးထိကြည့်ပါ...";
   }
 
   /*
-    Open YouTube video.
+    This function expects a YouTube player container
+    with id: youtube-player-TASK_ID
   */
-  let opened = null;
 
-  try {
-    opened = window.open(
-      videoUrl,
-      "_blank",
-      "noopener,noreferrer"
+  const host =
+    document.querySelector(
+      `[data-video-host="${taskId}"]`
     );
-  } catch (error) {
-    console.warn("Video popup:", error);
-  }
 
-  /*
-    Popup blocked fallback.
-  */
-  if (!opened) {
+  if (!host) {
     if (status) {
-      status.innerHTML =
-        `Popup blocked. <a href="${escapeHtml(
-          videoUrl
-        )}" target="_blank" rel="noopener noreferrer">
-        Open Video
-        </a> ပြီးရင် ဒီနေရာကို ပြန်လာပါ။`;
+      status.textContent =
+        "Video player area မတွေ့ပါ။";
     }
-
     watchBtn.disabled = false;
     return;
   }
 
-  /*
-    IMPORTANT:
-    Opening another YouTube tab cannot tell our website
-    whether the YouTube video really reached END.
+  host.innerHTML = `
+    <div
+      id="youtube-player-${taskId}"
+      style="
+        width:100%;
+        aspect-ratio:16/9;
+        border-radius:10px;
+        overflow:hidden;
+      "
+    ></div>
+  `;
 
-    So do NOT unlock the Coin just because 5 seconds passed.
-  */
+  await loadYouTubeAPI();
 
-  if (status) {
-    status.textContent =
-      "⚠️ Video ကို အဆုံးထိကြည့်ပြီး ဒီနေရာကို ပြန်လာပါ။";
-  }
+  const player =
+    new YT.Player(
+      `youtube-player-${taskId}`,
+      {
+        videoId: videoId,
 
-  /*
-    Keep Claim locked.
-  */
-  if (claimBtn) {
-    claimBtn.disabled = true;
-    claimBtn.textContent =
-      `🔒 Video အဆုံးထိကြည့်ပါ`;
-  }
+        playerVars: {
+          playsinline: 1,
+          rel: 0
+        },
+
+        events: {
+
+          onReady: function(event) {
+            players.set(taskId, event.target);
+
+            try {
+              event.target.playVideo();
+            } catch (e) {
+              console.warn(e);
+            }
+          },
+
+          onStateChange: function(event) {
+
+            const state =
+              videoStates.get(taskId);
+
+            if (!state) return;
+
+            /*
+              Video started.
+            */
+            if (
+              event.data ===
+              YT.PlayerState.PLAYING
+            ) {
+
+              state.started = true;
+
+              if (
+                !videoTimers.has(taskId)
+              ) {
+
+                const timer =
+                  setInterval(() => {
+
+                    const p =
+                      players.get(taskId);
+
+                    if (!p) return;
+
+                    let current = 0;
+
+                    try {
+                      current =
+                        p.getCurrentTime() || 0;
+                    } catch {
+                      return;
+                    }
+
+                    /*
+                      Detect large seek.
+                    */
+                    if (
+                      state.lastTime > 0 &&
+                      current >
+                        state.lastTime + 3
+                    ) {
+                      state.skipped = true;
+
+                      if (claimBtn) {
+                        claimBtn.disabled = true;
+                      }
+
+                      if (status) {
+                        status.textContent =
+                          "❌ Video ကျော်ကြည့်ထားပါတယ်။ Coin မရပါ။ Video ကိုအစမှ ပြန်ကြည့်ပါ။";
+                      }
+                    }
+
+                    /*
+                      Detect backward seek.
+                    */
+                    if (
+                      current <
+                      state.lastTime - 2
+                    ) {
+                      state.skipped = true;
+
+                      if (claimBtn) {
+                        claimBtn.disabled = true;
+                      }
+
+                      if (status) {
+                        status.textContent =
+                          "❌ Video ကိုကျော်ထားပါတယ်။ Coin မရပါ။";
+                      }
+                    }
+
+                    if (
+                      current >
+                      state.maxTime
+                    ) {
+                      state.maxTime =
+                        current;
+                    }
+
+                    state.lastTime =
+                      current;
+
+                  }, 500);
+
+                videoTimers.set(
+                  taskId,
+                  timer
+                );
+              }
+            }
+
+            /*
+              Video paused.
+            */
+            if (
+              event.data ===
+              YT.PlayerState.PAUSED
+            ) {
+              if (status && !state.skipped) {
+                status.textContent =
+                  "⏸️ Video ခဏရပ်ထားပါတယ်။ ပြန်ဖွင့်ပြီး အဆုံးထိကြည့်ပါ။";
+              }
+            }
+
+            /*
+              Video reached END.
+            */
+            if (
+              event.data ===
+              YT.PlayerState.ENDED
+            ) {
+
+              state.ended = true;
+
+              if (
+                videoTimers.has(taskId)
+              ) {
+                clearInterval(
+                  videoTimers.get(taskId)
+                );
+
+                videoTimers.delete(
+                  taskId
+                );
+              }
+
+              /*
+                Do NOT unlock if skipping
+                was detected.
+              */
+              if (state.skipped) {
+
+                if (claimBtn) {
+                  claimBtn.disabled =
+                    true;
+                }
+
+                if (status) {
+                  status.textContent =
+                    "❌ Skip လုပ်ထားသောကြောင့် Coin မရပါ။ Video ကို ပြန်ကြည့်ပါ။";
+                }
+
+                watchBtn.disabled =
+                  false;
+
+                return;
+              }
+
+              /*
+                Video really reached END.
+              */
+              if (claimBtn) {
+
+                claimBtn.disabled =
+                  false;
+
+                claimBtn.textContent =
+                  `🎁 Claim +${Number(
+                    task.reward_coins || 0
+                  )} Coins`;
+              }
+
+              if (status) {
+                status.textContent =
+                  "✅ Video အဆုံးထိပြီးပါပြီ။ Coin ရယူနိုင်ပါပြီ။";
+              }
+            }
+          },
+
+          onError: function() {
+
+            if (videoTimers.has(taskId)) {
+              clearInterval(
+                videoTimers.get(taskId)
+              );
+
+              videoTimers.delete(
+                taskId
+              );
+            }
+
+            if (status) {
+              status.textContent =
+                "❌ Video ဖွင့်မရပါ။";
+            }
+
+            watchBtn.disabled =
+              false;
+
+            if (claimBtn) {
+              claimBtn.disabled =
+                true;
+            }
+          }
+        }
+      }
+    );
 }
 
 /* =========================================================
